@@ -1,0 +1,27 @@
+#!/bin/bash
+check_char='\xE2\x9C\x93'
+cross_char='\xE2\x9D\x8C'
+green='\033[0;32m'
+nc='\033[0m'
+check="$green$check_char$nc"
+errors=0
+
+
+echo -n "Checking formatting... "
+cargo fmt
+fi
+
+echo -n "Running tests... "
+if result=$(cargo test --color always 2>&1); then
+	echo -e "$check"
+else
+	echo "$result"
+	errors=1
+fi
+
+if [ "$errors" != 0 ]; then
+	echo "Failed"
+	exit 1
+else
+	echo "OK"
+fi
