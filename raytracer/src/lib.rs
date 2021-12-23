@@ -44,6 +44,10 @@ impl Point3D {
         let length = self.length();
         Point3D::new(self.x / length, self.y / length, self.z / length)
     }
+
+    pub fn dot(&self, other: &Point3D) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z
+    }
 }
 
 impl Add for Point3D {
@@ -228,6 +232,13 @@ fn test_div() {
     assert_approx_eq!(r.x(), 0.5);
     assert_approx_eq!(r.y(), 0.6666666666666666);
     assert_approx_eq!(r.z(), 0.3/0.4);
+}
+
+#[test]
+fn test_dot() {
+    let p = Point3D::new(0.1, 0.2, 0.3);
+    let q = Point3D::new(0.2, 0.3, 0.4);
+    assert_approx_eq!(p.dot(&q), 0.2);
 }
 
 #[test]
