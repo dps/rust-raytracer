@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 use std::cmp::PartialEq;
 use std::f64;
 
@@ -74,6 +74,18 @@ impl Sub for Point3D {
             x: self.x - other.x(),
             y: self.y - other.y(),
             z: self.z - other.z(),
+        }
+    }
+}
+
+impl Neg for Point3D {
+    type Output = Point3D;
+
+    fn neg(self) -> Point3D {
+        Point3D {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
         }
     }
 }
@@ -219,6 +231,15 @@ fn test_sub() {
 }
 
 #[test]
+fn test_neg() {
+    let p = Point3D::new(0.1, 0.2, 0.3);
+    let q = -p;
+    assert_approx_eq!(q.x(), -0.1);
+    assert_approx_eq!(q.y(), -0.2);
+    assert_approx_eq!(q.z(), -0.3);
+}
+
+#[test]
 fn test_mul() {
     let p = Point3D::new(0.1, 0.2, 0.3);
     let q = Point3D::new(0.2, 0.3, 0.4);
@@ -283,15 +304,17 @@ fn test_ray_at() {
 pub struct HitRecord {
     pub t: f64,
     pub point: Point3D,
-    pub normal: Point3D
+    pub normal: Point3D,
+    pub front_face: bool
 }
 
 impl HitRecord {
-    pub fn new(t: f64, point: Point3D, normal: Point3D) -> HitRecord {
+    pub fn new(t: f64, point: Point3D, normal: Point3D, front_face: bool) -> HitRecord {
         HitRecord {
             t,
             point,
-            normal
+            normal,
+            front_face
         }
     }
 }
@@ -324,24 +347,17 @@ impl Hittable for Sphere {
 
         if discriminant > 0.0 {
             let root = discriminant.sqrt();
-            let mut temp = (-half_b - root) / a;
+            let temp = (-half_b - root) / a;
             if temp < t_max && temp > t_min {
                 let p = ray.at(temp);
                 let normal = (p - self.center) / self.radius;
+                let front_face = ray.direction.dot(&normal) < 0.0;
+
                 return Some(HitRecord {
                     t: temp,
                     point: p,
-                    normal
-                });
-            }
-            temp = (-half_b + root) / a;
-            if temp < t_max && temp > t_min {
-                let p = ray.at(temp);
-                let normal = (p - self.center) / self.radius;
-                return Some(HitRecord {
-                    t: temp,
-                    point: p,
-                    normal
+                    normal: if front_face { normal } else { -normal },
+                    front_face
                 });
             }
         }
