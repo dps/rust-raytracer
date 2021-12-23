@@ -1,5 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 use std::cmp::PartialEq;
+use std::f64;
 
 #[cfg(test)]
 use assert_approx_eq::assert_approx_eq;
@@ -60,7 +61,7 @@ impl Sub for Point3D {
     }
 }
 
-impl Mul for Point3D {
+impl Mul<Point3D> for Point3D {
     type Output = Point3D;
 
     fn mul(self, other: Point3D) -> Point3D {
@@ -68,6 +69,18 @@ impl Mul for Point3D {
             x: self.x * other.x(),
             y: self.y * other.y(),
             z: self.z * other.z(),
+        }
+    }
+}
+
+impl Mul<f64> for Point3D {
+    type Output = Point3D;
+
+    fn mul(self, other: f64) -> Point3D {
+        Point3D {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
         }
     }
 }
@@ -87,6 +100,22 @@ impl Div for Point3D {
 impl PartialEq for Point3D {
     fn eq(&self, other: &Point3D) -> bool {
         self.x == other.x() && self.y == other.y() && self.z == other.z()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Ray {
+    pub origin: Point3D,
+    pub direction: Point3D,
+}
+
+impl Ray {
+    pub fn new(origin: Point3D, direction: Point3D) -> Ray {
+        Ray { origin, direction }
+    }
+
+    pub fn at(&self, t: f64) -> Point3D {
+        self.origin + self.direction * t
     }
 }
 
@@ -141,4 +170,33 @@ fn test_div() {
     assert_approx_eq!(r.x(), 0.5);
     assert_approx_eq!(r.y(), 0.6666666666666666);
     assert_approx_eq!(r.z(), 0.3/0.4);
+}
+
+#[test]
+fn test_ray() {
+    let p = Point3D::new(0.1, 0.2, 0.3);
+    let q = Point3D::new(0.2, 0.3, 0.4);
+
+    let r = Ray::new(p, q);
+
+    assert_approx_eq!(r.origin.x(), 0.1);
+    assert_approx_eq!(r.origin.y(), 0.2);
+    assert_approx_eq!(r.origin.z(), 0.3);
+    assert_approx_eq!(r.direction.x(), 0.2);
+    assert_approx_eq!(r.direction.y(), 0.3);
+    assert_approx_eq!(r.direction.z(), 0.4);
+}
+
+#[test]
+fn test_ray_at() {
+    let p = Point3D::new(0.0, 0.0, 0.0);
+    let q = Point3D::new(1.0, 2.0, 3.0);
+
+    let r = Ray::new(p, q);
+    let s = r.at(0.5);
+
+    assert_approx_eq!(s.x(), 0.5);
+    assert_approx_eq!(s.y(), 1.0);
+    assert_approx_eq!(s.z(), 1.5);
+
 }
