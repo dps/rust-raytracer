@@ -381,5 +381,5 @@ fn test_sphere_hit() {
     let sphere = Sphere::new(center, 1.0);
     let ray = Ray::new(Point3D::new(0.0, 0.0, -5.0), Point3D::new(0.0, 0.0, 1.0));
     let hit = sphere.hit(&ray, 0.0, f64::INFINITY);
-    assert_eq!(hit.unwrap().t, 4.0);
+    assert_eq!(hit.unwrap().t, 3.0);
 }
