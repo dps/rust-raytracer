@@ -1,6 +1,6 @@
-use std::ops::{Add, Sub, Mul, Div, Neg};
 use std::cmp::PartialEq;
 use std::f64;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[cfg(test)]
 use assert_approx_eq::assert_approx_eq;
@@ -165,28 +165,39 @@ pub struct Camera {
     pub lower_left_corner: Point3D,
     pub focal_length: f64,
     pub horizontal: Point3D,
-    pub vertical: Point3D
+    pub vertical: Point3D,
 }
 
 impl Camera {
-    pub fn new(origin: Point3D, viewport_height: f64, viewport_width: f64, focal_length: f64) -> Camera {
+    pub fn new(
+        origin: Point3D,
+        viewport_height: f64,
+        viewport_width: f64,
+        focal_length: f64,
+    ) -> Camera {
         let horizontal = Point3D::new(viewport_width, 0.0, 0.0);
         let vertical = Point3D::new(0.0, viewport_height, 0.0);
-        let lower_left_corner = origin - (horizontal / 2.0) - (vertical / 2.0) - Point3D::new(0.0, 0.0, focal_length);
+        let lower_left_corner =
+            origin - (horizontal / 2.0) - (vertical / 2.0) - Point3D::new(0.0, 0.0, focal_length);
 
         Camera {
             origin,
             lower_left_corner,
             focal_length,
             horizontal,
-            vertical
+            vertical,
         }
     }
 }
 
 #[test]
 fn test_camera() {
-    let camera = Camera::new(Point3D::new(0.0,0.0,0.0), 2.0, (800/600) as f64 *2.0, 1.0);
+    let camera = Camera::new(
+        Point3D::new(0.0, 0.0, 0.0),
+        2.0,
+        (800 / 600) as f64 * 2.0,
+        1.0,
+    );
     assert_eq!(camera.origin.x(), 0.0);
     assert_eq!(camera.origin.y(), 0.0);
     assert_eq!(camera.origin.z(), 0.0);
@@ -194,12 +205,15 @@ fn test_camera() {
     assert_eq!(camera.lower_left_corner.x(), -1.0);
     assert_eq!(camera.lower_left_corner.y(), -1.0);
     assert_eq!(camera.lower_left_corner.z(), -1.0);
-
 }
 
 #[test]
 fn test_gen() {
-    let p = Point3D{x:0.1, y:0.2, z:0.3};
+    let p = Point3D {
+        x: 0.1,
+        y: 0.2,
+        z: 0.3,
+    };
     assert_eq!(p.x(), 0.1);
     assert_eq!(p.y(), 0.2);
     assert_eq!(p.z(), 0.3);
@@ -256,7 +270,7 @@ fn test_div() {
     let r = p / q;
     assert_approx_eq!(r.x(), 0.5);
     assert_approx_eq!(r.y(), 0.6666666666666666);
-    assert_approx_eq!(r.z(), 0.3/0.4);
+    assert_approx_eq!(r.z(), 0.3 / 0.4);
 }
 
 #[test]
@@ -298,14 +312,13 @@ fn test_ray_at() {
     assert_approx_eq!(s.x(), 0.5);
     assert_approx_eq!(s.y(), 1.0);
     assert_approx_eq!(s.z(), 1.5);
-
 }
 
 pub struct HitRecord {
     pub t: f64,
     pub point: Point3D,
     pub normal: Point3D,
-    pub front_face: bool
+    pub front_face: bool,
 }
 
 impl HitRecord {
@@ -314,7 +327,7 @@ impl HitRecord {
             t,
             point,
             normal,
-            front_face
+            front_face,
         }
     }
 }
@@ -325,15 +338,12 @@ pub trait Hittable {
 
 pub struct Sphere {
     center: Point3D,
-    radius: f64
+    radius: f64,
 }
 
 impl Sphere {
     pub fn new(center: Point3D, radius: f64) -> Sphere {
-        Sphere {
-            center,
-            radius
-        }
+        Sphere { center, radius }
     }
 }
 
@@ -357,7 +367,7 @@ impl Hittable for Sphere {
                     t: temp,
                     point: p,
                     normal: if front_face { normal } else { -normal },
-                    front_face
+                    front_face,
                 });
             }
         }
