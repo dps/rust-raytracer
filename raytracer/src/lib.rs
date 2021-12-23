@@ -94,7 +94,7 @@ impl Mul<f64> for Point3D {
     }
 }
 
-impl Div for Point3D {
+impl Div<Point3D> for Point3D {
     type Output = Point3D;
 
     fn div(self, other: Point3D) -> Point3D {
@@ -102,6 +102,18 @@ impl Div for Point3D {
             x: self.x / other.x(),
             y: self.y / other.y(),
             z: self.z / other.z(),
+        }
+    }
+}
+
+impl Div<f64> for Point3D {
+    type Output = Point3D;
+
+    fn div(self, other: f64) -> Point3D {
+        Point3D {
+            x: self.x / other,
+            y: self.y / other,
+            z: self.z / other,
         }
     }
 }
@@ -126,6 +138,43 @@ impl Ray {
     pub fn at(&self, t: f64) -> Point3D {
         self.origin + self.direction * t
     }
+}
+
+pub struct Camera {
+    pub origin: Point3D,
+    pub lower_left_corner: Point3D,
+    pub focal_length: f64,
+    pub horizontal: Point3D,
+    pub vertical: Point3D
+}
+
+impl Camera {
+    pub fn new(origin: Point3D, viewport_height: f64, viewport_width: f64, focal_length: f64) -> Camera {
+        let horizontal = Point3D::new(viewport_width, 0.0, 0.0);
+        let vertical = Point3D::new(0.0, viewport_height, 0.0);
+        let lower_left_corner = origin - (horizontal / 2.0) - (vertical / 2.0) - Point3D::new(0.0, 0.0, focal_length);
+
+        Camera {
+            origin,
+            lower_left_corner,
+            focal_length,
+            horizontal,
+            vertical
+        }
+    }
+}
+
+#[test]
+fn test_camera() {
+    let camera = Camera::new(Point3D::new(0.0,0.0,0.0), 2.0, (800/600) as f64 *2.0, 1.0);
+    assert_eq!(camera.origin.x(), 0.0);
+    assert_eq!(camera.origin.y(), 0.0);
+    assert_eq!(camera.origin.z(), 0.0);
+
+    assert_eq!(camera.lower_left_corner.x(), -1.0);
+    assert_eq!(camera.lower_left_corner.y(), -1.0);
+    assert_eq!(camera.lower_left_corner.z(), -1.0);
+
 }
 
 #[test]

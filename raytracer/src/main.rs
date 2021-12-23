@@ -5,6 +5,7 @@ use std::env;
 use palette::Pixel;
 use palette::Srgb;
 
+use raytracer::Camera;
 use raytracer::Ray;
 use raytracer::Point3D;
 
@@ -31,14 +32,15 @@ fn test_ray_color() {
 fn render(pixels: &mut[u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
+    let camera = Camera::new(Point3D::new(0.0,0.0,0.0), 2.0, (800/600) as f64 *2.0, 1.0);
+
     for y in 0..bounds.1 {
         eprintln!("scanlines remaining {}", bounds.1 - y);
         for x in 0..bounds.0 {
-            let color = Srgb::new(
-                (x as f32 / (bounds.0 as f32 - 1.0)) as f32,
-                (y as f32 / (bounds.1 as f32 - 1.0)) as f32,
-                0.25
-            );
+            let u = (x as f64) / (bounds.0 as f64 - 1.0);
+            let v = (bounds.1 as f64 - y as f64) / (bounds.1 as f64 - 1.0);
+            let r = Ray::new(camera.origin, camera.lower_left_corner + camera.horizontal * u + camera.vertical * v - camera.origin);
+            let color = ray_color(&r);
             let i = y * bounds.0 + x;
             let pixel: [u8; 3] = color.into_format().into_raw();
             pixels[i * 3] = pixel[0];
