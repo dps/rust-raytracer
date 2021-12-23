@@ -2,6 +2,8 @@ use image::ColorType;
 use image::png::PNGEncoder;
 use std::fs::File; 
 use std::env;
+use palette::Pixel;
+use palette::Srgb;
 
 fn write_image(filename: &str, pixels: &[u8], bounds:(usize, usize)) -> Result<(), std::io::Error> {
     let output = File::create(filename)?;
@@ -16,13 +18,16 @@ fn render(pixels: &mut[u8], bounds: (usize, usize)) {
     for y in 0..bounds.1 {
         eprintln!("scanlines remaining {}", bounds.1 - y);
         for x in 0..bounds.0 {
-            let r = (x as f32 / (bounds.0 as f32 - 1.0)) as f32;
-            let g = (y as f32 / (bounds.1 as f32 - 1.0)) as f32;
-            let b = 0.25;
+            let color = Srgb::new(
+                (x as f32 / (bounds.0 as f32 - 1.0)) as f32,
+                (y as f32 / (bounds.1 as f32 - 1.0)) as f32,
+                0.25
+            );
             let i = y * bounds.0 + x;
-            pixels[i * 3] = (255.99 * r) as u8;
-            pixels[i * 3 + 1] = (255.99 * g) as u8;
-            pixels[i * 3 + 2] = (255.99 * b) as u8;
+            let pixel: [u8; 3] = color.into_format().into_raw();
+            pixels[i * 3] = pixel[0];
+            pixels[i * 3 + 1] = pixel[1];
+            pixels[i * 3 + 2] = pixel[2];
         }
     }
 }

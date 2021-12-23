@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 image = "0.13.0"
+palette = "0.6.0"
