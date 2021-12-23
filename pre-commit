@@ -8,7 +8,11 @@ errors=0
 
 cd raytracer
 echo -n "Checking formatting... "
-cargo fmt
+if result=$(cargo fmt -- --check); then
+	echo -e "$check"
+else
+	echo -e "$cross_char\n$result"
+	errors=1
 fi
 
 echo -n "Running tests... "
