@@ -6,6 +6,7 @@ use palette::Pixel;
 use palette::Srgb;
 
 use raytracer::Ray;
+use raytracer::Point3D;
 
 fn write_image(filename: &str, pixels: &[u8], bounds:(usize, usize)) -> Result<(), std::io::Error> {
     let output = File::create(filename)?;
@@ -17,6 +18,14 @@ fn write_image(filename: &str, pixels: &[u8], bounds:(usize, usize)) -> Result<(
 fn ray_color(ray: &Ray) -> Srgb {
     let t : f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
     Srgb::new((1.0 - t) * 1.0 + t * 0.5, (1.0 - t) * 1.0 + t * 0.7, (1.0 - t) * 1.0 + t * 1.0)
+}
+
+#[test]
+fn test_ray_color() {
+    let p = Point3D::new(0.0, 0.0, 0.0);
+    let q = Point3D::new(1.0, 0.0, 0.0);
+    let r = Ray::new(p, q);
+    assert_eq!(ray_color(&r), Srgb::new(0.75, 0.85, 1.0));
 }
 
 fn render(pixels: &mut[u8], bounds: (usize, usize)) {
