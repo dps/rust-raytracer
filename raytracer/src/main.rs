@@ -14,6 +14,7 @@ fn render(pixels: &mut[u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
     for y in 0..bounds.1 {
+        eprintln!("scanlines remaining {}", bounds.1 - y);
         for x in 0..bounds.0 {
             let r = (x as f32 / (bounds.0 as f32 - 1.0)) as f32;
             let g = (y as f32 / (bounds.1 as f32 - 1.0)) as f32;
