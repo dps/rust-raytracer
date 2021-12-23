@@ -35,6 +35,15 @@ impl Point3D {
         let dz = self.z - other.z();
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
+
+    pub fn length(&self) -> f64 {
+        self.distance(&Point3D::new(0.0, 0.0, 0.0))
+    }
+
+    pub fn unit_vector(&self) -> Point3D {
+        let length = self.length();
+        Point3D::new(self.x / length, self.y / length, self.z / length)
+    }
 }
 
 impl Add for Point3D {

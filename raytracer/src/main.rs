@@ -5,11 +5,18 @@ use std::env;
 use palette::Pixel;
 use palette::Srgb;
 
+use raytracer::Ray;
+
 fn write_image(filename: &str, pixels: &[u8], bounds:(usize, usize)) -> Result<(), std::io::Error> {
     let output = File::create(filename)?;
     let encoder = PNGEncoder::new(output);
     encoder.encode(pixels, bounds.0 as u32, bounds.1 as u32, ColorType::RGB(8))?;
     Ok(())
+}
+
+fn ray_color(ray: &Ray) -> Srgb {
+    let t : f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
+    Srgb::new((1.0 - t) * 1.0 + t * 0.5, (1.0 - t) * 1.0 + t * 0.7, (1.0 - t) * 1.0 + t * 1.0)
 }
 
 fn render(pixels: &mut[u8], bounds: (usize, usize)) {
