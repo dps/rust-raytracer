@@ -36,6 +36,10 @@ impl Point3D {
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
 
+    pub fn length_squared(&self) -> f64 {
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
     pub fn length(&self) -> f64 {
         self.distance(&Point3D::new(0.0, 0.0, 0.0))
     }
@@ -239,6 +243,12 @@ fn test_dot() {
     let p = Point3D::new(0.1, 0.2, 0.3);
     let q = Point3D::new(0.2, 0.3, 0.4);
     assert_approx_eq!(p.dot(&q), 0.2);
+}
+
+#[test]
+fn test_length_squared() {
+    let p = Point3D::new(0.1, 0.2, 0.3);
+    assert_approx_eq!(p.length_squared(), 0.14);
 }
 
 #[test]

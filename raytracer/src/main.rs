@@ -16,27 +16,19 @@ fn write_image(filename: &str, pixels: &[u8], bounds:(usize, usize)) -> Result<(
     Ok(())
 }
 
-// bool hit_sphere(const point3& center, double radius, const ray& r) {
-//     vec3 oc = r.origin() - center;
-//     auto a = dot(r.direction(), r.direction());
-//     auto b = 2.0 * dot(oc, r.direction());
-//     auto c = dot(oc, oc) - radius*radius;
-//     auto discriminant = b*b - 4*a*c;
-//     return (discriminant > 0);
-// }
-
 fn hit_sphere(center: Point3D, radius: f64, r: &Ray) -> f64 {
     let oc = r.origin - center;
-    let a = r.direction.dot(&r.direction);
-    let b = 2.0 * oc.dot(&r.direction);
-    let c = oc.dot(&oc) - radius * radius;
-    let discriminant = b*b - 4.0*a*c;
+    let a = r.direction.length_squared();
+    let half_b = oc.dot(&r.direction);
+    let c = oc.length_squared() - radius * radius;
+    let discriminant = half_b*half_b - a*c;
     if discriminant < 0.0 {
         return -1.0;
     } else {
-        return (-b - discriminant.sqrt()) / (2.0 * a);
+        return (-half_b - discriminant.sqrt()) / a;
     }
 }
+
 fn ray_color(ray: &Ray) -> Srgb {
     let hit =  hit_sphere(Point3D::new(0.0, 0.0, -1.0), 0.5, ray);
     if hit > 0.0 {
