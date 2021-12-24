@@ -1,3 +1,4 @@
+use palette::Srgb;
 use rand::Rng;
 use std::cmp::PartialEq;
 use std::f64;
@@ -70,6 +71,10 @@ impl Point3D {
 
     pub fn dot(&self, other: &Point3D) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    pub fn near_zero(&self) -> bool {
+        self.x.abs() < f64::EPSILON && self.y.abs() < f64::EPSILON && self.z.abs() < f64::EPSILON
     }
 }
 
@@ -339,6 +344,14 @@ fn test_random() {
 }
 
 #[test]
+fn test_near_zero() {
+    let p = Point3D::new(0.1, 0.2, 0.3);
+    assert!(!p.near_zero());
+    let p = Point3D::new(0.0, 0.0, 0.0);
+    assert!(p.near_zero());
+}
+
+#[test]
 fn test_ray() {
     let p = Point3D::new(0.1, 0.2, 0.3);
     let q = Point3D::new(0.2, 0.3, 0.4);
@@ -371,15 +384,23 @@ pub struct HitRecord {
     pub point: Point3D,
     pub normal: Point3D,
     pub front_face: bool,
+    pub material: Material,
 }
 
 impl HitRecord {
-    pub fn new(t: f64, point: Point3D, normal: Point3D, front_face: bool) -> HitRecord {
+    pub fn new(
+        t: f64,
+        point: Point3D,
+        normal: Point3D,
+        front_face: bool,
+        material: Material,
+    ) -> HitRecord {
         HitRecord {
             t,
             point,
             normal,
             front_face,
+            material,
         }
     }
 }
@@ -391,11 +412,18 @@ pub trait Hittable {
 pub struct Sphere {
     center: Point3D,
     radius: f64,
+    material: Material,
 }
 
 impl Sphere {
     pub fn new(center: Point3D, radius: f64) -> Sphere {
-        Sphere { center, radius }
+        Sphere {
+            center,
+            radius,
+            material: Material::Lambertian(Lambertian::new(Srgb::new(
+                0.5 as f32, 0.5 as f32, 0.5 as f32,
+            ))),
+        }
     }
 }
 
@@ -420,6 +448,7 @@ impl Hittable for Sphere {
                     point: p,
                     normal: if front_face { normal } else { -normal },
                     front_face,
+                    material: self.material,
                 });
             }
         }
@@ -434,4 +463,69 @@ fn test_sphere_hit() {
     let ray = Ray::new(Point3D::new(0.0, 0.0, -5.0), Point3D::new(0.0, 0.0, 1.0));
     let hit = sphere.hit(&ray, 0.0, f64::INFINITY);
     assert_eq!(hit.unwrap().t, 4.0);
+}
+
+pub trait Scatterable {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Material {
+    Lambertian(Lambertian),
+    Metal(Metal),
+}
+
+impl Scatterable for Material {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+        match self {
+            Material::Lambertian(l) => l.scatter(ray, hit_record),
+            Material::Metal(m) => m.scatter(ray, hit_record),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Lambertian {
+    pub albedo: Srgb,
+}
+
+impl Lambertian {
+    pub fn new(albedo: Srgb) -> Lambertian {
+        Lambertian { albedo }
+    }
+}
+
+impl Scatterable for Lambertian {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+        let mut scatter_direction = hit_record.normal + Point3D::random_in_unit_sphere();
+        if scatter_direction.near_zero() {
+            scatter_direction = hit_record.normal;
+        }
+        let target = hit_record.point + scatter_direction;
+        let scattered = Ray::new(hit_record.point, target - hit_record.point);
+        let attenuation = self.albedo;
+        Some((scattered, attenuation))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Metal {
+    pub albedo: Srgb,
+}
+
+fn reflect(v: &Point3D, n: &Point3D) -> Point3D {
+    *v - *n * (2.0 * v.dot(n))
+}
+
+impl Scatterable for Metal {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+        let reflected = reflect(&ray.direction, &hit_record.normal);
+        let scattered = Ray::new(hit_record.point, reflected);
+        let attenuation = self.albedo;
+        if scattered.direction.dot(&hit_record.normal) > 0.0 {
+            Some((scattered, attenuation))
+        } else {
+            None
+        }
+    }
 }

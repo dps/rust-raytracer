@@ -11,6 +11,7 @@ use raytracer::HitRecord;
 use raytracer::Hittable;
 use raytracer::Point3D;
 use raytracer::Ray;
+use raytracer::Scatterable;
 use raytracer::Sphere;
 
 fn write_image(
@@ -43,17 +44,20 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
     let hit = hit_world(world, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
-            let target = hit_record.point + hit_record.normal + Point3D::random_in_unit_sphere();
-            let target_color = ray_color(
-                &Ray::new(hit_record.point, target - hit_record.point),
-                world,
-                depth - 1,
-            );
-            return Srgb::new(
-                0.5 * target_color.red,
-                0.5 * target_color.green,
-                0.5 * target_color.blue,
-            );
+            let scattered = hit_record.material.scatter(ray, &hit_record);
+            match scattered {
+                Some((scattered_ray, albedo)) => {
+                    let target_color = ray_color(&scattered_ray, world, depth - 1);
+                    return Srgb::new(
+                        albedo.red * target_color.red,
+                        albedo.green * target_color.green,
+                        albedo.blue * target_color.blue,
+                    );
+                }
+                None => {
+                    return Srgb::new(0.0, 0.0, 0.0);
+                }
+            }
         }
         None => {
             let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
