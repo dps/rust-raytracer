@@ -52,7 +52,8 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>) -> Srgb {
     let hit = hit_world(world, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
-            let n = (ray.at(hit_record.t) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
+            //let n = (ray.at(hit_record.t) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
+            let n = hit_record.normal;
             return Srgb::new(
                 0.5 * n.x() as f32 + 0.5,
                 0.5 * n.y() as f32 + 0.5,
