@@ -43,12 +43,6 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
     let hit = hit_world(world, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
-            // let n = hit_record.normal;
-            // return Srgb::new(
-            //     0.5 * n.x() as f32 + 0.5,
-            //     0.5 * n.y() as f32 + 0.5,
-            //     0.5 * n.z() as f32 + 0.5,
-            // );
             let target = hit_record.point + hit_record.normal + Point3D::random_in_unit_sphere();
             let target_color = ray_color(
                 &Ray::new(hit_record.point, target - hit_record.point),
@@ -112,10 +106,11 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
                 pixel_colors[1] += c.green;
                 pixel_colors[2] += c.blue;
             }
+            let scale = 1.0 / samples_per_pixel as f32;
             let color = Srgb::new(
-                pixel_colors[0] / samples_per_pixel as f32,
-                pixel_colors[1] / samples_per_pixel as f32,
-                pixel_colors[2] / samples_per_pixel as f32,
+                (scale * pixel_colors[0]).sqrt(),
+                (scale * pixel_colors[1]).sqrt(),
+                (scale * pixel_colors[2]).sqrt(),
             );
             let i = y * bounds.0 + x;
             let pixel: [u8; 3] = color.into_format().into_raw();
