@@ -9,6 +9,9 @@ use std::fs::File;
 use raytracer::Camera;
 use raytracer::HitRecord;
 use raytracer::Hittable;
+use raytracer::Lambertian;
+use raytracer::Material;
+use raytracer::Metal;
 use raytracer::Point3D;
 use raytracer::Ray;
 use raytracer::Scatterable;
@@ -91,9 +94,36 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
         1.0,
     );
 
+    let material_ground = Material::Lambertian(Lambertian::new(Srgb::new(
+        0.8 as f32, 0.8 as f32, 0.0 as f32,
+    )));
+    let material_center = Material::Lambertian(Lambertian::new(Srgb::new(
+        0.7 as f32, 0.3 as f32, 0.3 as f32,
+    )));
+    let material_left = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.8 as f32, 0.8 as f32)));
+    let material_right = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32)));
+
     let mut world: Vec<Sphere> = Vec::new();
-    world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5));
-    world.push(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0));
+    world.push(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    ));
+    world.push(Sphere::new(
+        Point3D::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    ));
+    world.push(Sphere::new(
+        Point3D::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    ));
+    world.push(Sphere::new(
+        Point3D::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    ));
 
     let mut rng = rand::thread_rng();
 

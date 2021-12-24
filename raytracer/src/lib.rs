@@ -416,13 +416,11 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point3D, radius: f64) -> Sphere {
+    pub fn new(center: Point3D, radius: f64, material: Material) -> Sphere {
         Sphere {
             center,
             radius,
-            material: Material::Lambertian(Lambertian::new(Srgb::new(
-                0.5 as f32, 0.5 as f32, 0.5 as f32,
-            ))),
+            material,
         }
     }
 }
@@ -459,7 +457,13 @@ impl Hittable for Sphere {
 #[test]
 fn test_sphere_hit() {
     let center = Point3D::new(0.0, 0.0, 0.0);
-    let sphere = Sphere::new(center, 1.0);
+    let sphere = Sphere::new(
+        center,
+        1.0,
+        Material::Lambertian(Lambertian::new(Srgb::new(
+            0.5 as f32, 0.5 as f32, 0.5 as f32,
+        ))),
+    );
     let ray = Ray::new(Point3D::new(0.0, 0.0, -5.0), Point3D::new(0.0, 0.0, 1.0));
     let hit = sphere.hit(&ray, 0.0, f64::INFINITY);
     assert_eq!(hit.unwrap().t, 4.0);
@@ -511,6 +515,12 @@ impl Scatterable for Lambertian {
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
     pub albedo: Srgb,
+}
+
+impl Metal {
+    pub fn new(albedo: Srgb) -> Metal {
+        Metal { albedo }
+    }
 }
 
 fn reflect(v: &Point3D, n: &Point3D) -> Point3D {
