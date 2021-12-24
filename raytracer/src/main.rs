@@ -7,6 +7,7 @@ use std::env;
 use std::fs::File;
 
 use raytracer::Camera;
+use raytracer::Glass;
 use raytracer::HitRecord;
 use raytracer::Hittable;
 use raytracer::Lambertian;
@@ -85,7 +86,7 @@ fn test_ray_color() {
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 8;
+    let samples_per_pixel = 6;
 
     let camera = Camera::new(
         Point3D::new(0.0, 0.0, 0.0),
@@ -98,10 +99,13 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
         0.8 as f32, 0.8 as f32, 0.0 as f32,
     )));
     let material_center = Material::Lambertian(Lambertian::new(Srgb::new(
-        0.7 as f32, 0.3 as f32, 0.3 as f32,
+        0.1 as f32, 0.2 as f32, 0.5 as f32,
     )));
-    let material_left = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.8 as f32, 0.8 as f32), 0.3));
-    let material_right = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32), 1.0));
+    let material_left = Material::Glass(Glass::new(3.0));
+    let material_right = Material::Metal(Metal::new(
+        Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32),
+        1.0,
+    ));
 
     let mut world: Vec<Sphere> = Vec::new();
     world.push(Sphere::new(

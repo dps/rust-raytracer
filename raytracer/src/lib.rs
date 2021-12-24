@@ -477,6 +477,7 @@ pub trait Scatterable {
 pub enum Material {
     Lambertian(Lambertian),
     Metal(Metal),
+    Glass(Glass),
 }
 
 impl Scatterable for Material {
@@ -484,6 +485,7 @@ impl Scatterable for Material {
         match self {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
+            Material::Glass(g) => g.scatter(ray, hit_record),
         }
     }
 }
@@ -531,12 +533,84 @@ fn reflect(v: &Point3D, n: &Point3D) -> Point3D {
 impl Scatterable for Metal {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
         let reflected = reflect(&ray.direction, &hit_record.normal);
-        let scattered = Ray::new(hit_record.point, reflected +  Point3D::random_in_unit_sphere() * self.fuzz);
+        let scattered = Ray::new(
+            hit_record.point,
+            reflected + Point3D::random_in_unit_sphere() * self.fuzz,
+        );
         let attenuation = self.albedo;
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
             Some((scattered, attenuation))
         } else {
             None
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Glass {
+    pub index_of_refraction: f64,
+}
+
+impl Glass {
+    pub fn new(index_of_refraction: f64) -> Glass {
+        Glass {
+            index_of_refraction,
+        }
+    }
+}
+
+fn refract(uv: &Point3D, n: &Point3D, etai_over_etat: f64) -> Point3D {
+    let cos_theta = ((-*uv).dot(n)).min(1.0);
+    let r_out_perp = (*uv + *n * cos_theta) * etai_over_etat;
+    let r_out_parallel = *n * (-1.0 * (1.0 - r_out_perp.length_squared()).abs().sqrt());
+    r_out_perp + r_out_parallel
+}
+
+fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 * r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
+#[test]
+fn test_refract() {
+    let uv = Point3D::new(1.0, 1.0, 0.0);
+    let n = Point3D::new(-1.0, 0.0, 0.0);
+    let etai_over_etat = 1.0;
+    let expected = Point3D::new(0.0, 1.0, 0.0);
+    let actual = refract(&uv, &n, etai_over_etat);
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_reflectance() {
+    let cosine = 0.0;
+    let ref_idx = 1.5;
+    let expected = 1.24;
+    let actual = reflectance(cosine, ref_idx);
+    assert_eq!(actual, expected);
+}
+
+impl Scatterable for Glass {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+        let mut rng = rand::thread_rng();
+        let attenuation = Srgb::new(1.0 as f32, 1.0 as f32, 1.0 as f32);
+        let refraction_ratio = if hit_record.front_face {
+            1.0 / self.index_of_refraction
+        } else {
+            self.index_of_refraction
+        };
+        let unit_direction = ray.direction.unit_vector();
+        let cos_theta = (-unit_direction).dot(&hit_record.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+        let cannot_refract = refraction_ratio * sin_theta > 1.0;
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
+            let reflected = reflect(&unit_direction, &hit_record.normal);
+            let scattered = Ray::new(hit_record.point, reflected);
+            Some((scattered, attenuation))
+        } else {
+            let direction = refract(&unit_direction, &hit_record.normal, refraction_ratio);
+            let scattered = Ray::new(hit_record.point, direction);
+            Some((scattered, attenuation))
         }
     }
 }
