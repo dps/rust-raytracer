@@ -567,8 +567,9 @@ fn refract(uv: &Point3D, n: &Point3D, etai_over_etat: f64) -> Point3D {
 }
 
 fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
-    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
-    r0 * r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+    let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
 #[test]
@@ -585,7 +586,7 @@ fn test_refract() {
 fn test_reflectance() {
     let cosine = 0.0;
     let ref_idx = 1.5;
-    let expected = 1.24;
+    let expected = 1.0;
     let actual = reflectance(cosine, ref_idx);
     assert_eq!(actual, expected);
 }
@@ -603,7 +604,7 @@ impl Scatterable for Glass {
         let cos_theta = (-unit_direction).dot(&hit_record.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
-        if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > 8.0 * rng.gen::<f64>() {
             let reflected = reflect(&unit_direction, &hit_record.normal);
             let scattered = Ray::new(hit_record.point, reflected);
             Some((scattered, attenuation))
