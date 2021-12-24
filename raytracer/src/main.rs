@@ -100,8 +100,8 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     let material_center = Material::Lambertian(Lambertian::new(Srgb::new(
         0.7 as f32, 0.3 as f32, 0.3 as f32,
     )));
-    let material_left = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.8 as f32, 0.8 as f32)));
-    let material_right = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32)));
+    let material_left = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.8 as f32, 0.8 as f32), 0.3));
+    let material_right = Material::Metal(Metal::new(Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32), 1.0));
 
     let mut world: Vec<Sphere> = Vec::new();
     world.push(Sphere::new(

@@ -515,11 +515,12 @@ impl Scatterable for Lambertian {
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
     pub albedo: Srgb,
+    pub fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Srgb) -> Metal {
-        Metal { albedo }
+    pub fn new(albedo: Srgb, fuzz: f64) -> Metal {
+        Metal { albedo, fuzz }
     }
 }
 
@@ -530,7 +531,7 @@ fn reflect(v: &Point3D, n: &Point3D) -> Point3D {
 impl Scatterable for Metal {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
         let reflected = reflect(&ray.direction, &hit_record.normal);
-        let scattered = Ray::new(hit_record.point, reflected);
+        let scattered = Ray::new(hit_record.point, reflected +  Point3D::random_in_unit_sphere() * self.fuzz);
         let attenuation = self.albedo;
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
             Some((scattered, attenuation))
