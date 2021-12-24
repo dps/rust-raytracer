@@ -6,8 +6,11 @@ use std::env;
 use std::fs::File;
 
 use raytracer::Camera;
+use raytracer::HitRecord;
+use raytracer::Hittable;
 use raytracer::Point3D;
 use raytracer::Ray;
+use raytracer::Sphere;
 
 fn write_image(
     filename: &str,
@@ -33,22 +36,38 @@ fn hit_sphere(center: Point3D, radius: f64, r: &Ray) -> f64 {
     }
 }
 
-fn ray_color(ray: &Ray) -> Srgb {
-    let hit = hit_sphere(Point3D::new(0.0, 0.0, -1.0), 0.5, ray);
-    if hit > 0.0 {
-        let n = (ray.at(hit) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
-        return Srgb::new(
-            0.5 * n.x() as f32 + 0.5,
-            0.5 * n.y() as f32 + 0.5,
-            0.5 * n.z() as f32 + 0.5,
-        );
+fn hit_world(world: &Vec<Sphere>, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    let mut closest_so_far = t_max;
+    let mut hit_record = None;
+    for sphere in world {
+        if let Some(hit) = sphere.hit(r, t_min, closest_so_far) {
+            closest_so_far = hit.t;
+            hit_record = Some(hit);
+        }
     }
-    let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
-    Srgb::new(
-        (1.0 - t) * 1.0 + t * 0.5,
-        (1.0 - t) * 1.0 + t * 0.7,
-        (1.0 - t) * 1.0 + t * 1.0,
-    )
+    hit_record
+}
+
+fn ray_color(ray: &Ray, world: &Vec<Sphere>) -> Srgb {
+    let hit = hit_world(world, ray, 0.001, std::f64::MAX);
+    match hit {
+        Some(hit_record) => {
+            let n = (ray.at(hit_record.t) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
+            return Srgb::new(
+                0.5 * n.x() as f32 + 0.5,
+                0.5 * n.y() as f32 + 0.5,
+                0.5 * n.z() as f32 + 0.5,
+            );
+        }
+        None => {
+            let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
+            return Srgb::new(
+                (1.0 - t) * 1.0 + t * 0.5,
+                (1.0 - t) * 1.0 + t * 0.7,
+                (1.0 - t) * 1.0 + t * 1.0,
+            );
+        }
+    }
 }
 
 #[test]
@@ -56,7 +75,8 @@ fn test_ray_color() {
     let p = Point3D::new(0.0, 0.0, 0.0);
     let q = Point3D::new(1.0, 0.0, 0.0);
     let r = Ray::new(p, q);
-    assert_eq!(ray_color(&r), Srgb::new(0.75, 0.85, 1.0));
+    let w = Vec::new();
+    assert_eq!(ray_color(&r, &w), Srgb::new(0.75, 0.85, 1.0));
 }
 
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
@@ -69,6 +89,10 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
         1.0,
     );
 
+    let mut world: Vec<Sphere> = Vec::new();
+    world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5));
+    world.push(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0));
+
     for y in 0..bounds.1 {
         eprint!(".");
         for x in 0..bounds.0 {
@@ -79,7 +103,7 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
                 camera.lower_left_corner + camera.horizontal * u + camera.vertical * v
                     - camera.origin,
             );
-            let color = ray_color(&r);
+            let color = ray_color(&r, &world);
             let i = y * bounds.0 + x;
             let pixel: [u8; 3] = color.into_format().into_raw();
             pixels[i * 3] = pixel[0];
