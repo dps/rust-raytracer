@@ -2,6 +2,7 @@ use image::png::PNGEncoder;
 use image::ColorType;
 use palette::Pixel;
 use palette::Srgb;
+use rand::Rng;
 use std::env;
 use std::fs::File;
 
@@ -21,19 +22,6 @@ fn write_image(
     let encoder = PNGEncoder::new(output);
     encoder.encode(pixels, bounds.0 as u32, bounds.1 as u32, ColorType::RGB(8))?;
     Ok(())
-}
-
-fn hit_sphere(center: Point3D, radius: f64, r: &Ray) -> f64 {
-    let oc = r.origin - center;
-    let a = r.direction.length_squared();
-    let half_b = oc.dot(&r.direction);
-    let c = oc.length_squared() - radius * radius;
-    let discriminant = half_b * half_b - a * c;
-    if discriminant < 0.0 {
-        return -1.0;
-    } else {
-        return (-half_b - discriminant.sqrt()) / a;
-    }
 }
 
 fn hit_world(world: &Vec<Sphere>, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
@@ -82,7 +70,7 @@ fn test_ray_color() {
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 64;
+    let samples_per_pixel = 8;
 
     let camera = Camera::new(
         Point3D::new(0.0, 0.0, 0.0),
@@ -95,13 +83,26 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5));
     world.push(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0));
 
+    let mut rng = rand::thread_rng();
+
     for y in 0..bounds.1 {
         eprint!(".");
         for x in 0..bounds.0 {
-            let u = (x as f64) / (bounds.0 as f64 - 1.0);
-            let v = (bounds.1 as f64 - y as f64) / (bounds.1 as f64 - 1.0);
-            let r = camera.get_ray(u, v);
-            let color = ray_color(&r, &world);
+            let mut pixel_colors: Vec<f32> = vec![0.0; 3];
+            for _s in 0..samples_per_pixel {
+                let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
+                let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
+                let r = camera.get_ray(u, v);
+                let c = ray_color(&r, &world);
+                pixel_colors[0] += c.red;
+                pixel_colors[1] += c.green;
+                pixel_colors[2] += c.blue;
+            }
+            let color = Srgb::new(
+                pixel_colors[0] / samples_per_pixel as f32,
+                pixel_colors[1] / samples_per_pixel as f32,
+                pixel_colors[2] / samples_per_pixel as f32,
+            );
             let i = y * bounds.0 + x;
             let pixel: [u8; 3] = color.into_format().into_raw();
             pixels[i * 3] = pixel[0];
