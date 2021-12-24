@@ -52,7 +52,6 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>) -> Srgb {
     let hit = hit_world(world, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
-            //let n = (ray.at(hit_record.t) - Point3D::new(0.0, 0.0, -1.0)).unit_vector();
             let n = hit_record.normal;
             return Srgb::new(
                 0.5 * n.x() as f32 + 0.5,
@@ -83,6 +82,8 @@ fn test_ray_color() {
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
+    let samples_per_pixel = 64;
+
     let camera = Camera::new(
         Point3D::new(0.0, 0.0, 0.0),
         2.0,
@@ -99,11 +100,7 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
         for x in 0..bounds.0 {
             let u = (x as f64) / (bounds.0 as f64 - 1.0);
             let v = (bounds.1 as f64 - y as f64) / (bounds.1 as f64 - 1.0);
-            let r = Ray::new(
-                camera.origin,
-                camera.lower_left_corner + camera.horizontal * u + camera.vertical * v
-                    - camera.origin,
-            );
+            let r = camera.get_ray(u, v);
             let color = ray_color(&r, &world);
             let i = y * bounds.0 + x;
             let pixel: [u8; 3] = color.into_format().into_raw();

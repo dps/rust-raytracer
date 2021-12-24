@@ -188,6 +188,13 @@ impl Camera {
             vertical,
         }
     }
+
+    pub fn get_ray(&self, u: f64, v: f64) -> Ray {
+        Ray::new(
+            self.origin,
+            self.lower_left_corner + self.horizontal * u + self.vertical * v - self.origin,
+        )
+    }
 }
 
 #[test]
@@ -205,6 +212,24 @@ fn test_camera() {
     assert_eq!(camera.lower_left_corner.x(), -1.0);
     assert_eq!(camera.lower_left_corner.y(), -1.0);
     assert_eq!(camera.lower_left_corner.z(), -1.0);
+}
+
+#[test]
+fn test_camera_get_ray() {
+    let camera = Camera::new(
+        Point3D::new(0.0, 0.0, 0.0),
+        2.0,
+        (800 / 600) as f64 * 2.0,
+        1.0,
+    );
+    let ray = camera.get_ray(0.5, 0.5);
+    assert_eq!(ray.origin.x(), 0.0);
+    assert_eq!(ray.origin.y(), 0.0);
+    assert_eq!(ray.origin.z(), 0.0);
+
+    assert_eq!(ray.direction.x(), 0.0);
+    assert_eq!(ray.direction.y(), 0.0);
+    assert_eq!(ray.direction.z(), -1.0);
 }
 
 #[test]
