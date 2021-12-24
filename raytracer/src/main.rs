@@ -36,15 +36,29 @@ fn hit_world(world: &Vec<Sphere>, r: &Ray, t_min: f64, t_max: f64) -> Option<Hit
     hit_record
 }
 
-fn ray_color(ray: &Ray, world: &Vec<Sphere>) -> Srgb {
+fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
+    if depth <= 0 {
+        return Srgb::new(0.0, 0.0, 0.0);
+    }
     let hit = hit_world(world, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
-            let n = hit_record.normal;
+            // let n = hit_record.normal;
+            // return Srgb::new(
+            //     0.5 * n.x() as f32 + 0.5,
+            //     0.5 * n.y() as f32 + 0.5,
+            //     0.5 * n.z() as f32 + 0.5,
+            // );
+            let target = hit_record.point + hit_record.normal + Point3D::random_in_unit_sphere();
+            let target_color = ray_color(
+                &Ray::new(hit_record.point, target - hit_record.point),
+                world,
+                depth - 1,
+            );
             return Srgb::new(
-                0.5 * n.x() as f32 + 0.5,
-                0.5 * n.y() as f32 + 0.5,
-                0.5 * n.z() as f32 + 0.5,
+                0.5 * target_color.red,
+                0.5 * target_color.green,
+                0.5 * target_color.blue,
             );
         }
         None => {
@@ -64,7 +78,7 @@ fn test_ray_color() {
     let q = Point3D::new(1.0, 0.0, 0.0);
     let r = Ray::new(p, q);
     let w = Vec::new();
-    assert_eq!(ray_color(&r, &w), Srgb::new(0.75, 0.85, 1.0));
+    assert_eq!(ray_color(&r, &w, 2), Srgb::new(0.75, 0.85, 1.0));
 }
 
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
@@ -93,7 +107,7 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
                 let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
                 let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
                 let r = camera.get_ray(u, v);
-                let c = ray_color(&r, &world);
+                let c = ray_color(&r, &world, 50);
                 pixel_colors[0] += c.red;
                 pixel_colors[1] += c.green;
                 pixel_colors[2] += c.blue;

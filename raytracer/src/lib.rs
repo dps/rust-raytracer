@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::cmp::PartialEq;
 use std::f64;
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -15,6 +16,24 @@ pub struct Point3D {
 impl Point3D {
     pub fn new(x: f64, y: f64, z: f64) -> Point3D {
         Point3D { x, y, z }
+    }
+
+    pub fn random(min: f64, max: f64) -> Point3D {
+        let mut rng = rand::thread_rng();
+        Point3D::new(
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+        )
+    }
+
+    pub fn random_in_unit_sphere() -> Point3D {
+        loop {
+            let p = Point3D::random(-1.0, 1.0);
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
     }
 
     pub fn x(&self) -> f64 {
@@ -309,6 +328,14 @@ fn test_dot() {
 fn test_length_squared() {
     let p = Point3D::new(0.1, 0.2, 0.3);
     assert_approx_eq!(p.length_squared(), 0.14);
+}
+
+#[test]
+fn test_random() {
+    let p = Point3D::random(-1.0, 1.0);
+    assert!(p.x() >= -1.0 && p.x() <= 1.0);
+    assert!(p.y() >= -1.0 && p.y() <= 1.0);
+    assert!(p.z() >= -1.0 && p.z() <= 1.0);
 }
 
 #[test]
