@@ -17,6 +17,7 @@ use raytracer::Point3D;
 use raytracer::Ray;
 use raytracer::Scatterable;
 use raytracer::Sphere;
+use raytracer::Texture;
 
 fn write_image(
     filename: &str,
@@ -29,7 +30,12 @@ fn write_image(
     Ok(())
 }
 
-fn hit_world(world: &Vec<Sphere>, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+fn hit_world<'material>(
+    world: &'material Vec<Sphere>,
+    r: &Ray,
+    t_min: f64,
+    t_max: f64,
+) -> Option<HitRecord<'material>> {
     let mut closest_so_far = t_max;
     let mut hit_record = None;
     for sphere in world {
@@ -84,16 +90,14 @@ fn test_ray_color() {
 }
 
 fn make_test_world() -> Vec<Sphere> {
+    let earth = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/earth.jpg"));
+
     let mut world = Vec::new();
-    world.push(Sphere::new(
-        Point3D::new(0.0, 0.0, -1.0),
-        0.5,
-        Material::Lambertian(Lambertian::new(Srgb::new(0.8, 0.3, 0.3))),
-    ));
+    world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5, earth));
     world.push(Sphere::new(
         Point3D::new(0.0, -100.5, -1.0),
         100.0,
-        Material::Lambertian(Lambertian::new(Srgb::new(0.8, 0.8, 0.0))),
+        Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.0)),
     ));
     world.push(Sphere::new(
         Point3D::new(1.0, 0.0, -1.0),
@@ -103,12 +107,17 @@ fn make_test_world() -> Vec<Sphere> {
     world.push(Sphere::new(
         Point3D::new(-1.0, 0.0, -1.0),
         0.5,
-        Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.3)),
+        Material::Glass(Glass::new(1.5)),
+    ));
+    world.push(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        -0.45,
+        Material::Glass(Glass::new(1.5)),
     ));
     world
 }
 
-fn make_cover_world() -> Vec<Sphere> {
+fn _make_cover_world() -> Vec<Sphere> {
     let mut world = Vec::new();
 
     world.push(Sphere::new(
@@ -192,22 +201,22 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
 
     let samples_per_pixel = 128;
 
-    // let camera = Camera::new(
-    //     Point3D::new(-2.0, 2.0, 1.0),
-    //     Point3D::new(0.0, 0.0, -1.0),
-    //     Point3D::new(0.0, 1.0, 0.0),
-    //     90.0,
-    //     (800.0 / 600.0) as f64,
-    // );
     let camera = Camera::new(
-        Point3D::new(13.0, 2.0, 3.0),
-        Point3D::new(0.0, 0.0, 0.0),
+        Point3D::new(-2.0, 1.0, 1.0),
+        Point3D::new(0.0, 0.0, -1.0),
         Point3D::new(0.0, 1.0, 0.0),
-        20.0,
+        50.0,
         (800.0 / 600.0) as f64,
     );
+    // let camera = Camera::new(
+    //     Point3D::new(13.0, 2.0, 3.0),
+    //     Point3D::new(0.0, 0.0, 0.0),
+    //     Point3D::new(0.0, 1.0, 0.0),
+    //     20.0,
+    //     (800.0 / 600.0) as f64,
+    // );
 
-    let world = make_cover_world();
+    let world = make_test_world();
 
     let mut rng = rand::thread_rng();
 

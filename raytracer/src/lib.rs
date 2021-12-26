@@ -1,7 +1,10 @@
+use jpeg_decoder::Decoder;
 use palette::Srgb;
 use rand::Rng;
 use std::cmp::PartialEq;
 use std::f64;
+use std::fs::File;
+use std::io::BufReader;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[cfg(test)]
@@ -398,28 +401,34 @@ fn test_ray_at() {
     assert_approx_eq!(s.z(), 1.5);
 }
 
-pub struct HitRecord {
+pub struct HitRecord<'material> {
     pub t: f64,
     pub point: Point3D,
     pub normal: Point3D,
     pub front_face: bool,
-    pub material: Material,
+    pub material: &'material Material,
+    pub u: f64,
+    pub v: f64,
 }
 
-impl HitRecord {
+impl<'material> HitRecord<'material> {
     pub fn new(
         t: f64,
         point: Point3D,
         normal: Point3D,
         front_face: bool,
-        material: Material,
-    ) -> HitRecord {
+        material: &'material Material,
+        u: f64,
+        v: f64,
+    ) -> HitRecord<'material> {
         HitRecord {
             t,
             point,
             normal,
             front_face,
             material,
+            u,
+            v,
         }
     }
 }
@@ -444,6 +453,16 @@ impl Sphere {
     }
 }
 
+fn u_v_from_sphere_hit_point(hit_point_on_sphere: Point3D) -> (f64, f64) {
+    let n = hit_point_on_sphere.unit_vector();
+    let x = n.x();
+    let y = n.y();
+    let z = n.z();
+    let u = (x.atan2(z) / (2.0 * std::f64::consts::PI)) + 0.5;
+    let v = y * 0.5 + 0.5;
+    (u, v)
+}
+
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
@@ -462,12 +481,16 @@ impl Hittable for Sphere {
                     let normal = (p - self.center) / self.radius;
                     let front_face = ray.direction.dot(&normal) < 0.0;
 
+                    let (u, v) = u_v_from_sphere_hit_point(p - self.center);
+
                     return Some(HitRecord {
                         t: *root,
                         point: p,
                         normal: if front_face { normal } else { -normal },
                         front_face,
-                        material: self.material,
+                        material: &self.material,
+                        u,
+                        v,
                     });
                 }
             }
@@ -495,11 +518,12 @@ pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)>;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Material {
     Lambertian(Lambertian),
     Metal(Metal),
     Glass(Glass),
+    Texture(Texture),
 }
 
 impl Scatterable for Material {
@@ -508,6 +532,7 @@ impl Scatterable for Material {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
             Material::Glass(g) => g.scatter(ray, hit_record),
+            Material::Texture(t) => t.scatter(ray, hit_record),
         }
     }
 }
@@ -636,4 +661,61 @@ impl Scatterable for Glass {
             Some((scattered, attenuation))
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Texture {
+    pub albedo: Srgb,
+    pixels: Vec<u8>,
+    width: u64,
+    height: u64,
+}
+
+impl Texture {
+    pub fn new(albedo: Srgb, texture_path: &str) -> Texture {
+        let file = File::open(texture_path).expect("failed to open texture file");
+        let mut decoder = Decoder::new(BufReader::new(file));
+        let pixels = decoder.decode().expect("failed to decode image");
+        let metadata = decoder.info().unwrap();
+        println!("{} loaded {:?}", texture_path, metadata);
+        Texture {
+            albedo,
+            pixels,
+            width: metadata.width as u64,
+            height: metadata.height as u64,
+        }
+    }
+
+    pub fn get_albedo(&self, u: f64, v: f64) -> Srgb {
+        let uu = u * (self.width) as f64;
+        let vv = (1.0 - v) * (self.height - 1) as f64;
+        let base_pixel =
+            (3 * ((vv.floor() as u64) * self.width as u64 + (uu.floor() as u64))) as usize;
+        let pixel_r = self.pixels[base_pixel];
+        let pixel_g = self.pixels[base_pixel + 1];
+        let pixel_b = self.pixels[base_pixel + 2];
+        Srgb::new(
+            pixel_r as f32 / 255.0,
+            pixel_g as f32 / 255.0,
+            pixel_b as f32 / 255.0,
+        )
+    }
+}
+
+impl Scatterable for Texture {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+        let mut scatter_direction = hit_record.normal + Point3D::random_in_unit_sphere();
+        if scatter_direction.near_zero() {
+            scatter_direction = hit_record.normal;
+        }
+        let target = hit_record.point + scatter_direction;
+        let scattered = Ray::new(hit_record.point, target - hit_record.point);
+        let attenuation = self.get_albedo(hit_record.u, hit_record.v);
+        Some((scattered, attenuation))
+    }
+}
+
+#[test]
+fn test_texture() {
+    let world = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/earth.jpg"));
 }
