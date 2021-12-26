@@ -86,14 +86,14 @@ fn test_ray_color() {
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 4;
+    let samples_per_pixel = 256;
 
     let camera = Camera::new(
         Point3D::new(-2.0, 2.0, 1.0),
         Point3D::new(0.0, 0.0, -1.0),
         Point3D::new(0.0, 1.0, 0.0),
-        20.0,
-        (800 / 600) as f64,
+        90.0,
+        (800.0 / 600.0) as f64,
     );
 
     let material_ground = Material::Lambertian(Lambertian::new(Srgb::new(
@@ -102,17 +102,21 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     let material_center = Material::Lambertian(Lambertian::new(Srgb::new(
         0.1 as f32, 0.2 as f32, 0.5 as f32,
     )));
-    let material_left = Material::Glass(Glass::new(-0.4));
+    let material_left = Material::Glass(Glass::new(1.5));
     let material_right = Material::Metal(Metal::new(
         Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32),
-        1.0,
+        0.0,
     ));
-    //let material_right = Material::Glass(Glass::new(3.0));
 
     let mut world: Vec<Sphere> = Vec::new();
     world.push(Sphere::new(
         Point3D::new(-1.0, 0.0, -1.0),
         0.5,
+        material_left,
+    ));
+    world.push(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        -0.45,
         material_left,
     ));
     world.push(Sphere::new(
@@ -134,7 +138,9 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     let mut rng = rand::thread_rng();
 
     for y in 0..bounds.1 {
-        eprint!(".");
+        if y % 10 == 0 {
+            eprint!(".");
+        }
         for x in 0..bounds.0 {
             let mut pixel_colors: Vec<f32> = vec![0.0; 3];
             for _s in 0..samples_per_pixel {

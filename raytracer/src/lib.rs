@@ -245,13 +245,13 @@ fn test_camera() {
         Point3D::new(0.0, 0.0, -1.0),
         Point3D::new(0.0, 1.0, 0.0),
         90.0,
-        (800 / 600) as f64,
+        (800.0 / 600.0) as f64,
     );
     assert_eq!(camera.origin.x(), 0.0);
     assert_eq!(camera.origin.y(), 0.0);
     assert_eq!(camera.origin.z(), 0.0);
 
-    assert_approx_eq!(camera.lower_left_corner.x(), -1.0);
+    assert_approx_eq!(camera.lower_left_corner.x(), -(1.0 + (1.0 / 3.0)));
     assert_approx_eq!(camera.lower_left_corner.y(), -1.0);
     assert_approx_eq!(camera.lower_left_corner.z(), -1.0);
 }
@@ -626,7 +626,7 @@ impl Scatterable for Glass {
         let cos_theta = (-unit_direction).dot(&hit_record.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
-        if cannot_refract || reflectance(cos_theta, refraction_ratio) > 8.0 * rng.gen::<f64>() {
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
             let reflected = reflect(&unit_direction, &hit_record.normal);
             let scattered = Ray::new(hit_record.point, reflected);
             Some((scattered, attenuation))
