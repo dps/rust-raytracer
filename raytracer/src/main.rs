@@ -83,57 +83,131 @@ fn test_ray_color() {
     assert_eq!(ray_color(&r, &w, 2), Srgb::new(0.75, 0.85, 1.0));
 }
 
-fn render(pixels: &mut [u8], bounds: (usize, usize)) {
-    assert!(pixels.len() == bounds.0 * bounds.1 * 3);
-
-    let samples_per_pixel = 256;
-
-    let camera = Camera::new(
-        Point3D::new(-2.0, 2.0, 1.0),
-        Point3D::new(0.0, 0.0, -1.0),
-        Point3D::new(0.0, 1.0, 0.0),
-        90.0,
-        (800.0 / 600.0) as f64,
-    );
-
-    let material_ground = Material::Lambertian(Lambertian::new(Srgb::new(
-        0.8 as f32, 0.8 as f32, 0.0 as f32,
-    )));
-    let material_center = Material::Lambertian(Lambertian::new(Srgb::new(
-        0.1 as f32, 0.2 as f32, 0.5 as f32,
-    )));
-    let material_left = Material::Glass(Glass::new(1.5));
-    let material_right = Material::Metal(Metal::new(
-        Srgb::new(0.8 as f32, 0.6 as f32, 0.2 as f32),
-        0.0,
-    ));
-
-    let mut world: Vec<Sphere> = Vec::new();
-    world.push(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left,
-    ));
-    world.push(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
-        -0.45,
-        material_left,
-    ));
+fn make_test_world() -> Vec<Sphere> {
+    let mut world = Vec::new();
     world.push(Sphere::new(
         Point3D::new(0.0, 0.0, -1.0),
         0.5,
-        material_center,
-    ));
-    world.push(Sphere::new(
-        Point3D::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
+        Material::Lambertian(Lambertian::new(Srgb::new(0.8, 0.3, 0.3))),
     ));
     world.push(Sphere::new(
         Point3D::new(0.0, -100.5, -1.0),
         100.0,
-        material_ground,
+        Material::Lambertian(Lambertian::new(Srgb::new(0.8, 0.8, 0.0))),
     ));
+    world.push(Sphere::new(
+        Point3D::new(1.0, 0.0, -1.0),
+        0.5,
+        Material::Metal(Metal::new(Srgb::new(0.8, 0.6, 0.2), 0.3)),
+    ));
+    world.push(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        0.5,
+        Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.3)),
+    ));
+    world
+}
+
+fn make_cover_world() -> Vec<Sphere> {
+    let mut world = Vec::new();
+
+    world.push(Sphere::new(
+        Point3D::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Material::Lambertian(Lambertian::new(Srgb::new(0.5, 0.5, 0.5))),
+    ));
+
+    let mut rng = rand::thread_rng();
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = rng.gen::<f64>();
+            let center = Point3D::new(
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            );
+
+            if ((center - Point3D::new(4.0, 0.2, 0.0)).length()) < 0.9 {
+                continue;
+            }
+
+            if choose_mat < 0.8 {
+                // diffuse
+                world.push(Sphere::new(
+                    center,
+                    0.2,
+                    Material::Lambertian(Lambertian::new(Srgb::new(
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                    ))),
+                ));
+            } else if choose_mat < 0.95 {
+                // metal
+                world.push(Sphere::new(
+                    center,
+                    0.2,
+                    Material::Metal(Metal::new(
+                        Srgb::new(
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                        ),
+                        0.5 * rng.gen::<f64>(),
+                    )),
+                ));
+            } else {
+                // glass
+                world.push(Sphere::new(center, 0.2, Material::Glass(Glass::new(1.5))));
+            }
+        }
+    }
+
+    world.push(Sphere::new(
+        Point3D::new(0.0, 1.0, 0.0),
+        1.0,
+        Material::Glass(Glass::new(1.5)),
+    ));
+    world.push(Sphere::new(
+        Point3D::new(-4.0, 1.0, 0.0),
+        1.0,
+        Material::Lambertian(Lambertian::new(Srgb::new(
+            0.4 as f32, 0.2 as f32, 0.1 as f32,
+        ))),
+    ));
+    world.push(Sphere::new(
+        Point3D::new(4.0, 1.0, 0.0),
+        1.0,
+        Material::Metal(Metal::new(
+            Srgb::new(0.7 as f32, 0.6 as f32, 0.5 as f32),
+            0.0,
+        )),
+    ));
+    world
+}
+
+fn render(pixels: &mut [u8], bounds: (usize, usize)) {
+    assert!(pixels.len() == bounds.0 * bounds.1 * 3);
+
+    let samples_per_pixel = 128;
+
+    // let camera = Camera::new(
+    //     Point3D::new(-2.0, 2.0, 1.0),
+    //     Point3D::new(0.0, 0.0, -1.0),
+    //     Point3D::new(0.0, 1.0, 0.0),
+    //     90.0,
+    //     (800.0 / 600.0) as f64,
+    // );
+    let camera = Camera::new(
+        Point3D::new(13.0, 2.0, 3.0),
+        Point3D::new(0.0, 0.0, 0.0),
+        Point3D::new(0.0, 1.0, 0.0),
+        20.0,
+        (800.0 / 600.0) as f64,
+    );
+
+    let world = make_cover_world();
 
     let mut rng = rand::thread_rng();
 
