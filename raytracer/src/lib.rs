@@ -73,6 +73,14 @@ impl Point3D {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
+    pub fn cross(&self, other: &Point3D) -> Point3D {
+        Point3D::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    }
+
     pub fn near_zero(&self) -> bool {
         self.x.abs() < f64::EPSILON && self.y.abs() < f64::EPSILON && self.z.abs() < f64::EPSILON
     }
@@ -193,21 +201,33 @@ pub struct Camera {
 }
 
 impl Camera {
+
     pub fn new(
-        origin: Point3D,
-        viewport_height: f64,
-        viewport_width: f64,
-        focal_length: f64,
+        look_from: Point3D,
+        look_at: Point3D,
+        vup: Point3D,
+        vfov: f64, // vertical field-of-view in degrees
+        aspect: f64,
     ) -> Camera {
-        let horizontal = Point3D::new(viewport_width, 0.0, 0.0);
-        let vertical = Point3D::new(0.0, viewport_height, 0.0);
+ 
+        let theta = vfov.to_radians();
+        let half_height = (theta / 2.0).tan();
+        let half_width = aspect * half_height;
+
+        let w = (look_from - look_at).unit_vector();
+        let u = vup.cross(&w).unit_vector();
+        let v = w.cross(&u);
+
+        let origin = look_from;
         let lower_left_corner =
-            origin - (horizontal / 2.0) - (vertical / 2.0) - Point3D::new(0.0, 0.0, focal_length);
+            origin - u * half_width - v * half_height - w;
+        let horizontal = u * 2.0 * half_width;
+        let vertical = v * 2.0 * half_height;
 
         Camera {
             origin,
             lower_left_corner,
-            focal_length,
+            focal_length: (look_from - look_at).length(),
             horizontal,
             vertical,
         }
@@ -225,35 +245,37 @@ impl Camera {
 fn test_camera() {
     let camera = Camera::new(
         Point3D::new(0.0, 0.0, 0.0),
-        2.0,
-        (800 / 600) as f64 * 2.0,
-        1.0,
+        Point3D::new(0.0, 0.0, -1.0),
+        Point3D::new(0.0, 1.0, 0.0),
+        90.0,
+        (800 / 600) as f64,
     );
     assert_eq!(camera.origin.x(), 0.0);
     assert_eq!(camera.origin.y(), 0.0);
     assert_eq!(camera.origin.z(), 0.0);
 
-    assert_eq!(camera.lower_left_corner.x(), -1.0);
-    assert_eq!(camera.lower_left_corner.y(), -1.0);
-    assert_eq!(camera.lower_left_corner.z(), -1.0);
+    assert_approx_eq!(camera.lower_left_corner.x(), -1.0);
+    assert_approx_eq!(camera.lower_left_corner.y(), -1.0);
+    assert_approx_eq!(camera.lower_left_corner.z(), -1.0);
 }
 
 #[test]
 fn test_camera_get_ray() {
     let camera = Camera::new(
-        Point3D::new(0.0, 0.0, 0.0),
-        2.0,
-        (800 / 600) as f64 * 2.0,
-        1.0,
+        Point3D::new(-4.0, 4.0, 1.0),
+        Point3D::new(0.0, 0.0, -1.0),
+        Point3D::new(0.0, 1.0, 0.0),
+        160.0,
+        (800 / 600) as f64,
     );
     let ray = camera.get_ray(0.5, 0.5);
-    assert_eq!(ray.origin.x(), 0.0);
-    assert_eq!(ray.origin.y(), 0.0);
-    assert_eq!(ray.origin.z(), 0.0);
+    assert_eq!(ray.origin.x(), -4.0);
+    assert_eq!(ray.origin.y(), 4.0);
+    assert_eq!(ray.origin.z(), 1.0);
 
-    assert_eq!(ray.direction.x(), 0.0);
-    assert_eq!(ray.direction.y(), 0.0);
-    assert_eq!(ray.direction.z(), -1.0);
+    assert_approx_eq!(ray.direction.x(), (2.0/3.0));
+    assert_approx_eq!(ray.direction.y(), -(2.0/3.0));
+    assert_approx_eq!(ray.direction.z(), -(1.0/3.0));
 }
 
 #[test]
