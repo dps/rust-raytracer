@@ -669,6 +669,7 @@ pub struct Texture {
     pixels: Vec<u8>,
     width: u64,
     height: u64,
+    h_offset: f64,
 }
 
 impl Texture {
@@ -683,11 +684,16 @@ impl Texture {
             pixels,
             width: metadata.width as u64,
             height: metadata.height as u64,
+            h_offset: 0.5,
         }
     }
 
     pub fn get_albedo(&self, u: f64, v: f64) -> Srgb {
-        let uu = u * (self.width) as f64;
+        let mut rot = u + self.h_offset;
+        if rot > 1.0 {
+            rot = rot - 1.0;
+        }
+        let uu = rot * (self.width) as f64;
         let vv = (1.0 - v) * (self.height - 1) as f64;
         let base_pixel =
             (3 * ((vv.floor() as u64) * self.width as u64 + (uu.floor() as u64))) as usize;
