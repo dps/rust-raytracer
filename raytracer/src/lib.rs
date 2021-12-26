@@ -201,7 +201,6 @@ pub struct Camera {
 }
 
 impl Camera {
-
     pub fn new(
         look_from: Point3D,
         look_at: Point3D,
@@ -209,7 +208,6 @@ impl Camera {
         vfov: f64, // vertical field-of-view in degrees
         aspect: f64,
     ) -> Camera {
- 
         let theta = vfov.to_radians();
         let half_height = (theta / 2.0).tan();
         let half_width = aspect * half_height;
@@ -219,8 +217,7 @@ impl Camera {
         let v = w.cross(&u);
 
         let origin = look_from;
-        let lower_left_corner =
-            origin - u * half_width - v * half_height - w;
+        let lower_left_corner = origin - (u * half_width) - (v * half_height) - w;
         let horizontal = u * 2.0 * half_width;
         let vertical = v * 2.0 * half_height;
 
@@ -236,7 +233,7 @@ impl Camera {
     pub fn get_ray(&self, u: f64, v: f64) -> Ray {
         Ray::new(
             self.origin,
-            self.lower_left_corner + self.horizontal * u + self.vertical * v - self.origin,
+            self.lower_left_corner + (self.horizontal * u) + (self.vertical * v) - self.origin,
         )
     }
 }
@@ -273,9 +270,9 @@ fn test_camera_get_ray() {
     assert_eq!(ray.origin.y(), 4.0);
     assert_eq!(ray.origin.z(), 1.0);
 
-    assert_approx_eq!(ray.direction.x(), (2.0/3.0));
-    assert_approx_eq!(ray.direction.y(), -(2.0/3.0));
-    assert_approx_eq!(ray.direction.z(), -(1.0/3.0));
+    assert_approx_eq!(ray.direction.x(), (2.0 / 3.0));
+    assert_approx_eq!(ray.direction.y(), -(2.0 / 3.0));
+    assert_approx_eq!(ray.direction.z(), -(1.0 / 3.0));
 }
 
 #[test]
@@ -453,23 +450,26 @@ impl Hittable for Sphere {
         let a = ray.direction.length_squared();
         let half_b = oc.dot(&ray.direction);
         let c = oc.length_squared() - self.radius * self.radius;
-        let discriminant = half_b * half_b - a * c;
+        let discriminant = (half_b * half_b) - (a * c);
 
-        if discriminant > 0.0 {
-            let root = discriminant.sqrt();
-            let temp = (-half_b - root) / a;
-            if temp < t_max && temp > t_min {
-                let p = ray.at(temp);
-                let normal = (p - self.center) / self.radius;
-                let front_face = ray.direction.dot(&normal) < 0.0;
+        if discriminant >= 0.0 {
+            let sqrtd = discriminant.sqrt();
+            let root_a = ((-half_b) - sqrtd) / a;
+            let root_b = ((-half_b) + sqrtd) / a;
+            for root in [root_a, root_b].iter() {
+                if *root < t_max && *root > t_min {
+                    let p = ray.at(*root);
+                    let normal = (p - self.center) / self.radius;
+                    let front_face = ray.direction.dot(&normal) < 0.0;
 
-                return Some(HitRecord {
-                    t: temp,
-                    point: p,
-                    normal: if front_face { normal } else { -normal },
-                    front_face,
-                    material: self.material,
-                });
+                    return Some(HitRecord {
+                        t: *root,
+                        point: p,
+                        normal: if front_face { normal } else { -normal },
+                        front_face,
+                        material: self.material,
+                    });
+                }
             }
         }
         None

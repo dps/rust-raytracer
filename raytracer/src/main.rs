@@ -86,13 +86,13 @@ fn test_ray_color() {
 fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 128;
+    let samples_per_pixel = 4;
 
     let camera = Camera::new(
         Point3D::new(-2.0, 2.0, 1.0),
         Point3D::new(0.0, 0.0, -1.0),
         Point3D::new(0.0, 1.0, 0.0),
-        90.0,
+        20.0,
         (800 / 600) as f64,
     );
 
