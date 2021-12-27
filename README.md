@@ -4,7 +4,7 @@ An implementation of https://raytracing.github.io/books/RayTracingInOneWeekend.h
 
 ## Latest output
 ![Latest output](raytracer/output/cover.png)
-![Texture mapping](raytracer/output/out.png)
+![Texture mapping](raytracer/output/anim.gif)
 
 
 ### Credits
