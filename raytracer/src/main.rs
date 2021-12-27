@@ -89,8 +89,12 @@ fn test_ray_color() {
     assert_eq!(ray_color(&r, &w, 2), Srgb::new(0.75, 0.85, 1.0));
 }
 
-fn make_test_world() -> Vec<Sphere> {
-    let earth = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/earth.jpg"));
+fn make_test_world(rot: f64) -> Vec<Sphere> {
+    let earth = Material::Texture(Texture::new(
+        Srgb::new(1.0, 1.0, 1.0),
+        "data/earth.jpg",
+        rot,
+    ));
 
     let mut world = Vec::new();
     world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5, earth));
@@ -196,10 +200,16 @@ fn _make_cover_world() -> Vec<Sphere> {
     world
 }
 
-fn render(pixels: &mut [u8], bounds: (usize, usize)) {
+fn render(filename: &str, rot: f64) {
+    let image_width = 800;
+    let image_height = 600;
+
+    let mut pixels = vec![0; image_width * image_height * 3];
+    let bounds = (image_width, image_height);
+
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 128;
+    let samples_per_pixel = 32;
 
     let camera = Camera::new(
         Point3D::new(-2.0, 1.0, 1.0),
@@ -216,7 +226,7 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
     //     (800.0 / 600.0) as f64,
     // );
 
-    let world = make_test_world();
+    let world = make_test_world(rot);
 
     let mut rng = rand::thread_rng();
 
@@ -248,22 +258,20 @@ fn render(pixels: &mut [u8], bounds: (usize, usize)) {
             pixels[i * 3 + 2] = pixel[2];
         }
     }
+
+    write_image(filename, &pixels, (image_width, image_height)).expect("error writing image");
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let image_width = 800;
-    let image_height = 600;
-
-    let mut pixels = vec![0; image_width * image_height * 3];
-
-    println!("raytracer {}x{}", image_width, image_height);
     if args.len() != 2 {
         println!("Usage: {} <output_file>", args[0]);
         return;
     }
 
-    render(&mut pixels, (image_width, image_height));
-
-    write_image(&args[1], &pixels, (image_width, image_height)).expect("error writing image");
+    for i in 0..60 {
+        let filename = format!("{}_{:0>3}.png", args[1], i);
+        println!("\nRendering {}", filename);
+        render(&filename, ((i as f64) / 30.0) as f64);
+    }
 }

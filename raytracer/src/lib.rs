@@ -673,7 +673,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(albedo: Srgb, texture_path: &str) -> Texture {
+    pub fn new(albedo: Srgb, texture_path: &str, rot: f64) -> Texture {
         let file = File::open(texture_path).expect("failed to open texture file");
         let mut decoder = Decoder::new(BufReader::new(file));
         let pixels = decoder.decode().expect("failed to decode image");
@@ -684,7 +684,7 @@ impl Texture {
             pixels,
             width: metadata.width as u64,
             height: metadata.height as u64,
-            h_offset: 0.5,
+            h_offset: rot,
         }
     }
 
@@ -723,5 +723,9 @@ impl Scatterable for Texture {
 
 #[test]
 fn test_texture() {
-    let world = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/earth.jpg"));
+    let world = Material::Texture(Texture::new(
+        Srgb::new(1.0, 1.0, 1.0),
+        "data/earth.jpg",
+        0.0,
+    ));
 }
