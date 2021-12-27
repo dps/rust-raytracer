@@ -98,25 +98,29 @@ fn make_test_world(rot: f64) -> Vec<Sphere> {
         rot,
     ));
 
+    let moon = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/moon.jpg", rot));
+
     let mut world = Vec::new();
     world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5, earth));
+    world.push(Sphere::new(Point3D::new(-1.0, 0.2, -1.0), 0.1, moon));
+
     world.push(Sphere::new(
         Point3D::new(0.0, -100.5, -1.0),
         100.0,
         Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.0)),
     ));
     world.push(Sphere::new(
-        Point3D::new(1.0, 0.0, -1.0),
+        Point3D::new(1.0, 0.5, -1.0),
         0.5,
-        Material::Metal(Metal::new(Srgb::new(0.8, 0.6, 0.2), 0.3)),
+        Material::Metal(Metal::new(Srgb::new(0.8, 0.6, 0.2), 0.1)),
     ));
     world.push(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
+        Point3D::new(-1.2, 0.0, -1.0),
         0.5,
         Material::Glass(Glass::new(1.5)),
     ));
     world.push(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
+        Point3D::new(-1.2, 0.0, -1.0),
         -0.45,
         Material::Glass(Glass::new(1.5)),
     ));
@@ -259,6 +263,8 @@ fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
         50.0,
         (800.0 / 600.0) as f64,
     );
+
+    // Camera for cover.
     // let camera = Camera::new(
     //     Point3D::new(13.0, 2.0, 3.0),
     //     Point3D::new(0.0, 0.0, 0.0),
@@ -286,36 +292,6 @@ fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
     })
     .unwrap();
 
-    // for y in 0..bounds.1 {
-    //     if y % 10 == 0 {
-    //         eprint!(".");
-    //     }
-    //     render_line(&mut pixels, bounds, &world, &camera, samples_per_pixel, y);
-    //     // for x in 0..bounds.0 {
-    //     //     let mut pixel_colors: Vec<f32> = vec![0.0; 3];
-    //     //     for _s in 0..samples_per_pixel {
-    //     //         let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
-    //     //         let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
-    //     //         let r = camera.get_ray(u, v);
-    //     //         let c = ray_color(&r, &world, 50);
-    //     //         pixel_colors[0] += c.red;
-    //     //         pixel_colors[1] += c.green;
-    //     //         pixel_colors[2] += c.blue;
-    //     //     }
-    //     //     let scale = 1.0 / samples_per_pixel as f32;
-    //     //     let color = Srgb::new(
-    //     //         (scale * pixel_colors[0]).sqrt(),
-    //     //         (scale * pixel_colors[1]).sqrt(),
-    //     //         (scale * pixel_colors[2]).sqrt(),
-    //     //     );
-    //     //     let i = y * bounds.0 + x;
-    //     //     let pixel: [u8; 3] = color.into_format().into_raw();
-    //     //     pixels[i * 3] = pixel[0];
-    //     //     pixels[i * 3 + 1] = pixel[1];
-    //     //     pixels[i * 3 + 2] = pixel[2];
-    //     // }
-    // }
-
     println!("Frame time: {}s", start.elapsed().as_secs());
 
     write_image(filename, &pixels, (image_width, image_height)).expect("error writing image");
@@ -328,8 +304,8 @@ fn main() {
         return;
     }
 
-    let steps = 120; // 120
-    let samples_per_pixel = 128; // 128
+    let steps = 120;
+    let samples_per_pixel = 256;
 
     for i in 0..steps {
         let filename = format!("{}_{:0>3}.png", args[1], i);
