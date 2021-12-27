@@ -678,7 +678,6 @@ impl Texture {
         let mut decoder = Decoder::new(BufReader::new(file));
         let pixels = decoder.decode().expect("failed to decode image");
         let metadata = decoder.info().unwrap();
-        println!("{} loaded {:?}", texture_path, metadata);
         Texture {
             albedo,
             pixels,

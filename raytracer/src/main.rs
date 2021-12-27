@@ -200,7 +200,7 @@ fn _make_cover_world() -> Vec<Sphere> {
     world
 }
 
-fn render(filename: &str, rot: f64) {
+fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
     let image_width = 800;
     let image_height = 600;
 
@@ -209,10 +209,12 @@ fn render(filename: &str, rot: f64) {
 
     assert!(pixels.len() == bounds.0 * bounds.1 * 3);
 
-    let samples_per_pixel = 32;
-
     let camera = Camera::new(
-        Point3D::new(-2.0, 1.0, 1.0),
+        Point3D::new(
+            -2.0 - 0.5 * (rot * 2.0 * std::f64::consts::PI).cos(),
+            1.0 + 0.5 * (rot * 2.0 * std::f64::consts::PI).sin(),
+            1.0,
+        ),
         Point3D::new(0.0, 0.0, -1.0),
         Point3D::new(0.0, 1.0, 0.0),
         50.0,
@@ -269,9 +271,16 @@ fn main() {
         return;
     }
 
-    for i in 0..60 {
+    let steps = 120;
+    let samples_per_pixel = 128;
+
+    for i in 0..steps {
         let filename = format!("{}_{:0>3}.png", args[1], i);
         println!("\nRendering {}", filename);
-        render(&filename, ((i as f64) / 30.0) as f64);
+        render(
+            &filename,
+            ((i as f64) / (steps as f64)) as f64,
+            samples_per_pixel,
+        );
     }
 }
