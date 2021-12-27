@@ -1,3 +1,4 @@
+use crossbeam;
 use image::png::PNGEncoder;
 use image::ColorType;
 use palette::Pixel;
@@ -5,6 +6,7 @@ use palette::Srgb;
 use rand::Rng;
 use std::env;
 use std::fs::File;
+use std::time::Instant;
 
 use raytracer::Camera;
 use raytracer::Glass;
@@ -200,14 +202,51 @@ fn _make_cover_world() -> Vec<Sphere> {
     world
 }
 
+fn render_line(
+    pixels: &mut [u8],
+    bounds: (usize, usize),
+    world: &Vec<Sphere>,
+    camera: &Camera,
+    samples_per_pixel: u32,
+    y: usize,
+    j: usize,
+) {
+    let mut rng = rand::thread_rng();
+
+    for x in 0..bounds.0 {
+        let mut pixel_colors: Vec<f32> = vec![0.0; 3];
+        for _s in 0..samples_per_pixel {
+            let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
+            let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
+            let r = camera.get_ray(u, v);
+            let c = ray_color(&r, &world, 50);
+            pixel_colors[0] += c.red;
+            pixel_colors[1] += c.green;
+            pixel_colors[2] += c.blue;
+        }
+        let scale = 1.0 / samples_per_pixel as f32;
+        let color = Srgb::new(
+            (scale * pixel_colors[0]).sqrt(),
+            (scale * pixel_colors[1]).sqrt(),
+            (scale * pixel_colors[2]).sqrt(),
+        );
+        let i = j * bounds.0 + x;
+        let pixel: [u8; 3] = color.into_format().into_raw();
+        pixels[i * 3] = pixel[0];
+        pixels[i * 3 + 1] = pixel[1];
+        pixels[i * 3 + 2] = pixel[2];
+    }
+}
+
 fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
     let image_width = 800;
     let image_height = 600;
+    let threads = 8;
 
     let mut pixels = vec![0; image_width * image_height * 3];
     let bounds = (image_width, image_height);
-
-    assert!(pixels.len() == bounds.0 * bounds.1 * 3);
+    let rows_per_band = bounds.1 / threads;
+    let bands: Vec<&mut [u8]> = pixels.chunks_mut(rows_per_band * bounds.0 * 3).collect();
 
     let camera = Camera::new(
         Point3D::new(
@@ -230,36 +269,54 @@ fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
 
     let world = make_test_world(rot);
 
-    let mut rng = rand::thread_rng();
+    let start = Instant::now();
 
-    for y in 0..bounds.1 {
-        if y % 10 == 0 {
-            eprint!(".");
+    crossbeam::scope(|spawner| {
+        for (i, band) in bands.into_iter().enumerate() {
+            let w = world.to_vec();
+            let c = camera.clone();
+            spawner.spawn(move |_| {
+                let mut j = 0;
+                for y in (i * rows_per_band)..((i + 1) * rows_per_band) {
+                    render_line(band, bounds, &w, &c, samples_per_pixel, y, j);
+                    j += 1;
+                }
+            });
         }
-        for x in 0..bounds.0 {
-            let mut pixel_colors: Vec<f32> = vec![0.0; 3];
-            for _s in 0..samples_per_pixel {
-                let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
-                let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
-                let r = camera.get_ray(u, v);
-                let c = ray_color(&r, &world, 50);
-                pixel_colors[0] += c.red;
-                pixel_colors[1] += c.green;
-                pixel_colors[2] += c.blue;
-            }
-            let scale = 1.0 / samples_per_pixel as f32;
-            let color = Srgb::new(
-                (scale * pixel_colors[0]).sqrt(),
-                (scale * pixel_colors[1]).sqrt(),
-                (scale * pixel_colors[2]).sqrt(),
-            );
-            let i = y * bounds.0 + x;
-            let pixel: [u8; 3] = color.into_format().into_raw();
-            pixels[i * 3] = pixel[0];
-            pixels[i * 3 + 1] = pixel[1];
-            pixels[i * 3 + 2] = pixel[2];
-        }
-    }
+    })
+    .unwrap();
+
+    // for y in 0..bounds.1 {
+    //     if y % 10 == 0 {
+    //         eprint!(".");
+    //     }
+    //     render_line(&mut pixels, bounds, &world, &camera, samples_per_pixel, y);
+    //     // for x in 0..bounds.0 {
+    //     //     let mut pixel_colors: Vec<f32> = vec![0.0; 3];
+    //     //     for _s in 0..samples_per_pixel {
+    //     //         let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
+    //     //         let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
+    //     //         let r = camera.get_ray(u, v);
+    //     //         let c = ray_color(&r, &world, 50);
+    //     //         pixel_colors[0] += c.red;
+    //     //         pixel_colors[1] += c.green;
+    //     //         pixel_colors[2] += c.blue;
+    //     //     }
+    //     //     let scale = 1.0 / samples_per_pixel as f32;
+    //     //     let color = Srgb::new(
+    //     //         (scale * pixel_colors[0]).sqrt(),
+    //     //         (scale * pixel_colors[1]).sqrt(),
+    //     //         (scale * pixel_colors[2]).sqrt(),
+    //     //     );
+    //     //     let i = y * bounds.0 + x;
+    //     //     let pixel: [u8; 3] = color.into_format().into_raw();
+    //     //     pixels[i * 3] = pixel[0];
+    //     //     pixels[i * 3 + 1] = pixel[1];
+    //     //     pixels[i * 3 + 2] = pixel[2];
+    //     // }
+    // }
+
+    println!("Frame time: {}s", start.elapsed().as_secs());
 
     write_image(filename, &pixels, (image_width, image_height)).expect("error writing image");
 }
@@ -271,8 +328,8 @@ fn main() {
         return;
     }
 
-    let steps = 120;
-    let samples_per_pixel = 128;
+    let steps = 120; // 120
+    let samples_per_pixel = 128; // 128
 
     for i in 0..steps {
         let filename = format!("{}_{:0>3}.png", args[1], i);

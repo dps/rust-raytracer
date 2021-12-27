@@ -195,6 +195,7 @@ impl Ray {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Camera {
     pub origin: Point3D,
     pub lower_left_corner: Point3D,
@@ -437,6 +438,7 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
+#[derive(Debug, Clone)]
 pub struct Sphere {
     center: Point3D,
     radius: f64,
