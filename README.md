@@ -7,9 +7,6 @@ An implementation of https://raytracing.github.io/books/RayTracingInOneWeekend.h
 ![Rotating texture mapped earth gif](raytracer/output/mvanim.gif)
 
 
-### Credits
-Earth texture from https://www.solarsystemscope.com/textures/
-
 ### Perf profiling
 ```
 🚀 ./target/release/raytracer anim/frame
@@ -41,3 +38,6 @@ Frame time: 5s
 ```
 🚀 ffmpeg -f image2 -framerate 15 -i anim/frame_%03d.png -loop -0 anim.gif
 ```
+
+### Credits
+Earth and moon textures from https://www.solarsystemscope.com/textures/
