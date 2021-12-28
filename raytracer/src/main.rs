@@ -8,19 +8,19 @@ use std::env;
 use std::fs::File;
 use std::time::Instant;
 
+use raytracer::camera::Camera;
+use raytracer::materials::Glass;
+use raytracer::materials::Lambertian;
+use raytracer::materials::Light;
+use raytracer::materials::Material;
+use raytracer::materials::Metal;
+use raytracer::materials::Scatterable;
+use raytracer::materials::Texture;
 use raytracer::point3d::Point3D;
 use raytracer::ray::Ray;
-use raytracer::Camera;
-use raytracer::Glass;
 use raytracer::HitRecord;
 use raytracer::Hittable;
-use raytracer::Lambertian;
-use raytracer::Light;
-use raytracer::Material;
-use raytracer::Metal;
-use raytracer::Scatterable;
 use raytracer::Sphere;
-use raytracer::Texture;
 
 fn write_image(
     filename: &str,
