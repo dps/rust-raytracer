@@ -517,7 +517,7 @@ fn test_sphere_hit() {
 }
 
 pub trait Scatterable {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)>;
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)>;
 }
 
 #[derive(Debug, Clone)]
@@ -526,16 +526,33 @@ pub enum Material {
     Metal(Metal),
     Glass(Glass),
     Texture(Texture),
+    Light(Light),
 }
 
 impl Scatterable for Material {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
         match self {
             Material::Lambertian(l) => l.scatter(ray, hit_record),
             Material::Metal(m) => m.scatter(ray, hit_record),
             Material::Glass(g) => g.scatter(ray, hit_record),
             Material::Texture(t) => t.scatter(ray, hit_record),
+            Material::Light(l) => l.scatter(ray, hit_record),
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Light {}
+
+impl Light {
+    pub fn new() -> Light {
+        Light {}
+    }
+}
+
+impl Scatterable for Light {
+    fn scatter(&self, _ray: &Ray, _hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
+        Some((None, Srgb::new(1.0, 1.0, 1.0)))
     }
 }
 
@@ -551,7 +568,7 @@ impl Lambertian {
 }
 
 impl Scatterable for Lambertian {
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
         let mut scatter_direction = hit_record.normal + Point3D::random_in_unit_sphere();
         if scatter_direction.near_zero() {
             scatter_direction = hit_record.normal;
@@ -559,7 +576,7 @@ impl Scatterable for Lambertian {
         let target = hit_record.point + scatter_direction;
         let scattered = Ray::new(hit_record.point, target - hit_record.point);
         let attenuation = self.albedo;
-        Some((scattered, attenuation))
+        Some((Some(scattered), attenuation))
     }
 }
 
@@ -580,7 +597,7 @@ fn reflect(v: &Point3D, n: &Point3D) -> Point3D {
 }
 
 impl Scatterable for Metal {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
         let reflected = reflect(&ray.direction, &hit_record.normal);
         let scattered = Ray::new(
             hit_record.point,
@@ -588,7 +605,7 @@ impl Scatterable for Metal {
         );
         let attenuation = self.albedo;
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
-            Some((scattered, attenuation))
+            Some((Some(scattered), attenuation))
         } else {
             None
         }
@@ -641,7 +658,7 @@ fn test_reflectance() {
 }
 
 impl Scatterable for Glass {
-    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
         let mut rng = rand::thread_rng();
         let attenuation = Srgb::new(1.0 as f32, 1.0 as f32, 1.0 as f32);
         let refraction_ratio = if hit_record.front_face {
@@ -656,11 +673,11 @@ impl Scatterable for Glass {
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > rng.gen::<f64>() {
             let reflected = reflect(&unit_direction, &hit_record.normal);
             let scattered = Ray::new(hit_record.point, reflected);
-            Some((scattered, attenuation))
+            Some((Some(scattered), attenuation))
         } else {
             let direction = refract(&unit_direction, &hit_record.normal, refraction_ratio);
             let scattered = Ray::new(hit_record.point, direction);
-            Some((scattered, attenuation))
+            Some((Some(scattered), attenuation))
         }
     }
 }
@@ -710,7 +727,7 @@ impl Texture {
 }
 
 impl Scatterable for Texture {
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Srgb)> {
+    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)> {
         let mut scatter_direction = hit_record.normal + Point3D::random_in_unit_sphere();
         if scatter_direction.near_zero() {
             scatter_direction = hit_record.normal;
@@ -718,7 +735,7 @@ impl Scatterable for Texture {
         let target = hit_record.point + scatter_direction;
         let scattered = Ray::new(hit_record.point, target - hit_record.point);
         let attenuation = self.get_albedo(hit_record.u, hit_record.v);
-        Some((scattered, attenuation))
+        Some((Some(scattered), attenuation))
     }
 }
 

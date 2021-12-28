@@ -13,6 +13,7 @@ use raytracer::Glass;
 use raytracer::HitRecord;
 use raytracer::Hittable;
 use raytracer::Lambertian;
+use raytracer::Light;
 use raytracer::Material;
 use raytracer::Metal;
 use raytracer::Point3D;
@@ -58,26 +59,30 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
         Some(hit_record) => {
             let scattered = hit_record.material.scatter(ray, &hit_record);
             match scattered {
-                Some((scattered_ray, albedo)) => {
-                    let target_color = ray_color(&scattered_ray, world, depth - 1);
-                    return Srgb::new(
-                        albedo.red * target_color.red,
-                        albedo.green * target_color.green,
-                        albedo.blue * target_color.blue,
-                    );
-                }
+                Some((scattered_ray, albedo)) => match scattered_ray {
+                    Some(sr) => {
+                        let target_color = ray_color(&sr, world, depth - 1);
+                        return Srgb::new(
+                            albedo.red * target_color.red,
+                            albedo.green * target_color.green,
+                            albedo.blue * target_color.blue,
+                        );
+                    }
+                    None => albedo,
+                },
                 None => {
                     return Srgb::new(0.0, 0.0, 0.0);
                 }
             }
         }
         None => {
-            let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
-            return Srgb::new(
-                (1.0 - t) * 1.0 + t * 0.5,
-                (1.0 - t) * 1.0 + t * 0.7,
-                (1.0 - t) * 1.0 + t * 1.0,
-            );
+            // let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
+            // return Srgb::new(
+            //     (1.0 - t) * 1.0 + t * 0.5,
+            //     (1.0 - t) * 1.0 + t * 0.7,
+            //     (1.0 - t) * 1.0 + t * 1.0,
+            // );
+            return Srgb::new(0.0, 0.0, 0.0);
         }
     }
 }
@@ -99,6 +104,7 @@ fn make_test_world(rot: f64) -> Vec<Sphere> {
     ));
 
     let moon = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/moon.jpg", rot));
+    let light = Material::Light(Light::new());
 
     let mut world = Vec::new();
     world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5, earth));
@@ -109,6 +115,7 @@ fn make_test_world(rot: f64) -> Vec<Sphere> {
         100.0,
         Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.0)),
     ));
+    world.push(Sphere::new(Point3D::new(0.0, 16.0, 20.0), 15.0, light));
     world.push(Sphere::new(
         Point3D::new(1.0, 0.5, -1.0),
         0.5,
@@ -304,8 +311,8 @@ fn main() {
         return;
     }
 
-    let steps = 120;
-    let samples_per_pixel = 256;
+    let steps = 4;
+    let samples_per_pixel = 4;
 
     for i in 0..steps {
         let filename = format!("{}_{:0>3}.png", args[1], i);
