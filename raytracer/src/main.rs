@@ -16,7 +16,7 @@ use raytracer::Lambertian;
 use raytracer::Light;
 use raytracer::Material;
 use raytracer::Metal;
-use raytracer::Point3D;
+use raytracer::point3d::Point3D;
 use raytracer::Ray;
 use raytracer::Scatterable;
 use raytracer::Sphere;
@@ -76,13 +76,13 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
             }
         }
         None => {
-            // let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
-            // return Srgb::new(
-            //     (1.0 - t) * 1.0 + t * 0.5,
-            //     (1.0 - t) * 1.0 + t * 0.7,
-            //     (1.0 - t) * 1.0 + t * 1.0,
-            // );
-            return Srgb::new(0.0, 0.0, 0.0);
+            let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
+            return Srgb::new(
+                (1.0 - t) * 1.0 + t * 0.5,
+                (1.0 - t) * 1.0 + t * 0.7,
+                (1.0 - t) * 1.0 + t * 1.0,
+            );
+            //return Srgb::new(0.0, 0.0, 0.0);
         }
     }
 }
