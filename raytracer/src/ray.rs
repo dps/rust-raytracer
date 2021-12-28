@@ -1,5 +1,5 @@
-use crate::point3d::Point3D;
 use crate::materials::Material;
+use crate::point3d::Point3D;
 
 #[cfg(test)]
 use assert_approx_eq::assert_approx_eq;

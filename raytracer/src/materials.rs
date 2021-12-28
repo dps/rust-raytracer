@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 use crate::point3d::Point3D;
 use crate::ray::Ray;
-use crate::HitRecord;
+use crate::ray::HitRecord;
 
 pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)>;
