@@ -1,0 +1,54 @@
+{
+    "config" : {
+        "width": 800,
+        "height": 600,
+        "sky": true,
+        "samples_per_pixel": 32,
+        "camera": {
+            "fov": 50,
+            "position": [-2.0, 1.0, 1.0],
+            "look_at": [0.0, 0.0, -1.0],
+            "up": [0.0, 1.0, 0.0]
+        }
+    },
+    "world" : [
+        {
+            "type" : "sphere",
+            "position" : [0.0, 0.0, -1.0],
+            "radius" : 0.5,
+            "material" : {
+                "type": "texture",
+                "color": [1.0, 1.0, 1.0],
+                "path": "data/earth.jpg"
+            }
+        },
+        {
+            "type" : "sphere",
+            "position" : [0.0, -100.5, -1.0],
+            "radius" : 100.0,
+            "material" : {
+                "type": "metal",
+                "color": [0.8, 0.8, 0.8],
+                "fuzz": 0.0
+            }
+        },
+        {
+            "type" : "sphere",
+            "position" : [-1.2, 0.0, -1.0],
+            "radius" : 0.5,
+            "material" : {
+                "type": "glass",
+                "ref_idx": 1.5
+            }
+        },
+        {
+            "type" : "sphere",
+            "position" : [-1.2, 0.0, -1.0],
+            "radius" : -0.48,
+            "material" : {
+                "type": "glass",
+                "ref_idx": 1.5
+            }
+        }   
+    ] 
+}
