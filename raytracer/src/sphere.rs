@@ -1,8 +1,8 @@
 use crate::materials::Material;
 use crate::point3d::Point3D;
-use crate::ray::Ray;
 use crate::ray::HitRecord;
 use crate::ray::Hittable;
+use crate::ray::Ray;
 
 #[cfg(test)]
 use crate::materials::Lambertian;

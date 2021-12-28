@@ -8,19 +8,25 @@ use std::env;
 use std::fs::File;
 use std::time::Instant;
 
-use raytracer::camera::Camera;
-use raytracer::materials::Glass;
-use raytracer::materials::Lambertian;
-use raytracer::materials::Light;
-use raytracer::materials::Material;
-use raytracer::materials::Metal;
-use raytracer::materials::Scatterable;
-use raytracer::materials::Texture;
-use raytracer::point3d::Point3D;
-use raytracer::ray::HitRecord;
-use raytracer::ray::Hittable;
-use raytracer::ray::Ray;
-use raytracer::sphere::Sphere;
+mod camera;
+mod materials;
+mod point3d;
+mod ray;
+mod sphere;
+
+use camera::Camera;
+use materials::Glass;
+use materials::Lambertian;
+use materials::Light;
+use materials::Material;
+use materials::Metal;
+use materials::Scatterable;
+use materials::Texture;
+use point3d::Point3D;
+use ray::HitRecord;
+use ray::Hittable;
+use ray::Ray;
+use sphere::Sphere;
 
 fn write_image(
     filename: &str,

@@ -5,8 +5,8 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::point3d::Point3D;
-use crate::ray::Ray;
 use crate::ray::HitRecord;
+use crate::ray::Ray;
 
 pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)>;
