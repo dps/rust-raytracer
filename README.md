@@ -33,6 +33,33 @@ Frame time: 5s
 Rendering anim/frame_002.png
 Frame time: 5s
 ```
+Uneven chunk timing
+```
+Rendering anim/frame_003.png
+Chunk time: 573ms
+Chunk time: 776ms
+Chunk time: 1728ms
+Chunk time: 4180ms
+Chunk time: 5215ms
+Chunk time: 5428ms
+Chunk time: 5632ms
+Chunk time: 5705ms
+Frame time: 5735ms
+```
+Using rayon
+```
+Rendering anim/frame_000.png
+Frame time: 2573ms
+
+Rendering anim/frame_001.png
+Frame time: 2775ms
+
+Rendering anim/frame_002.png
+Frame time: 3049ms
+
+Rendering anim/frame_003.png
+Frame time: 3299ms
+```
 
 ### Make animation
 ```

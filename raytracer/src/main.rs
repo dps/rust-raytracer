@@ -1,18 +1,18 @@
-use crossbeam;
 use image::png::PNGEncoder;
 use image::ColorType;
 use palette::Pixel;
 use palette::Srgb;
 use rand::Rng;
+use rayon::prelude::*;
 use std::env;
 use std::fs::File;
 use std::time::Instant;
 
-mod camera;
-mod materials;
-mod point3d;
-mod ray;
-mod sphere;
+pub mod camera;
+pub mod materials;
+pub mod point3d;
+pub mod ray;
+pub mod sphere;
 
 use camera::Camera;
 use materials::Glass;
@@ -226,7 +226,6 @@ fn render_line(
     camera: &Camera,
     samples_per_pixel: u32,
     y: usize,
-    j: usize,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -247,23 +246,20 @@ fn render_line(
             (scale * pixel_colors[1]).sqrt(),
             (scale * pixel_colors[2]).sqrt(),
         );
-        let i = j * bounds.0 + x;
         let pixel: [u8; 3] = color.into_format().into_raw();
-        pixels[i * 3] = pixel[0];
-        pixels[i * 3 + 1] = pixel[1];
-        pixels[i * 3 + 2] = pixel[2];
+        pixels[x * 3] = pixel[0];
+        pixels[x * 3 + 1] = pixel[1];
+        pixels[x * 3 + 2] = pixel[2];
     }
 }
 
 fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
     let image_width = 800;
     let image_height = 600;
-    let threads = 8;
 
     let mut pixels = vec![0; image_width * image_height * 3];
     let bounds = (image_width, image_height);
-    let rows_per_band = bounds.1 / threads;
-    let bands: Vec<&mut [u8]> = pixels.chunks_mut(rows_per_band * bounds.0 * 3).collect();
+    let bands: Vec<(usize, &mut [u8])> = pixels.chunks_mut(bounds.0 * 3).enumerate().collect();
 
     let camera = Camera::new(
         Point3D::new(
@@ -290,22 +286,10 @@ fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
 
     let start = Instant::now();
 
-    crossbeam::scope(|spawner| {
-        for (i, band) in bands.into_iter().enumerate() {
-            let w = world.to_vec();
-            let c = camera.clone();
-            spawner.spawn(move |_| {
-                let mut j = 0;
-                for y in (i * rows_per_band)..((i + 1) * rows_per_band) {
-                    render_line(band, bounds, &w, &c, samples_per_pixel, y, j);
-                    j += 1;
-                }
-            });
-        }
-    })
-    .unwrap();
-
-    println!("Frame time: {}s", start.elapsed().as_secs());
+    bands.into_par_iter().for_each(|(i, band)| {
+        render_line(band, bounds, &world, &camera, samples_per_pixel, i);
+    });
+    println!("Frame time: {}ms", start.elapsed().as_millis());
 
     write_image(filename, &pixels, (image_width, image_height)).expect("error writing image");
 }
@@ -318,7 +302,7 @@ fn main() {
     }
 
     let steps = 4;
-    let samples_per_pixel = 4;
+    let samples_per_pixel = 128;
 
     for i in 0..steps {
         let filename = format!("{}_{:0>3}.png", args[1], i);
