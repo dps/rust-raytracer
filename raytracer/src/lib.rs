@@ -8,47 +8,13 @@ pub mod ray;
 use materials::Material;
 use point3d::Point3D;
 use ray::Ray;
+use ray::Hittable;
+use ray::HitRecord;
 
 #[cfg(test)]
 use materials::Lambertian;
 #[cfg(test)]
 use palette::Srgb;
-
-pub struct HitRecord<'material> {
-    pub t: f64,
-    pub point: Point3D,
-    pub normal: Point3D,
-    pub front_face: bool,
-    pub material: &'material Material,
-    pub u: f64,
-    pub v: f64,
-}
-
-impl<'material> HitRecord<'material> {
-    pub fn new(
-        t: f64,
-        point: Point3D,
-        normal: Point3D,
-        front_face: bool,
-        material: &'material Material,
-        u: f64,
-        v: f64,
-    ) -> HitRecord<'material> {
-        HitRecord {
-            t,
-            point,
-            normal,
-            front_face,
-            material,
-            u,
-            v,
-        }
-    }
-}
-
-pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-}
 
 #[derive(Debug, Clone)]
 pub struct Sphere {

@@ -18,8 +18,8 @@ use raytracer::materials::Scatterable;
 use raytracer::materials::Texture;
 use raytracer::point3d::Point3D;
 use raytracer::ray::Ray;
-use raytracer::HitRecord;
-use raytracer::Hittable;
+use raytracer::ray::HitRecord;
+use raytracer::ray::Hittable;
 use raytracer::Sphere;
 
 fn write_image(
