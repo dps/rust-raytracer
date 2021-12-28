@@ -30,28 +30,6 @@ pub struct HitRecord<'material> {
     pub v: f64,
 }
 
-impl<'material> HitRecord<'material> {
-    pub fn new(
-        t: f64,
-        point: Point3D,
-        normal: Point3D,
-        front_face: bool,
-        material: &'material Material,
-        u: f64,
-        v: f64,
-    ) -> HitRecord<'material> {
-        HitRecord {
-            t,
-            point,
-            normal,
-            front_face,
-            material,
-            u,
-            v,
-        }
-    }
-}
-
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
