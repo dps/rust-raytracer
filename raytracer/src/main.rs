@@ -8,6 +8,8 @@ use std::env;
 use std::fs::File;
 use std::time::Instant;
 
+use raytracer::point3d::Point3D;
+use raytracer::ray::Ray;
 use raytracer::Camera;
 use raytracer::Glass;
 use raytracer::HitRecord;
@@ -16,8 +18,6 @@ use raytracer::Lambertian;
 use raytracer::Light;
 use raytracer::Material;
 use raytracer::Metal;
-use raytracer::point3d::Point3D;
-use raytracer::Ray;
 use raytracer::Scatterable;
 use raytracer::Sphere;
 use raytracer::Texture;
