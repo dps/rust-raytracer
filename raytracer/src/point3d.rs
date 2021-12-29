@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::f64;
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -6,7 +7,7 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 #[cfg(test)]
 use assert_approx_eq::assert_approx_eq;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct Point3D {
     x: f64,
     y: f64,

@@ -1,6 +1,8 @@
 use jpeg_decoder::Decoder;
 use palette::Srgb;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -12,7 +14,24 @@ pub trait Scatterable {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Option<Ray>, Srgb)>;
 }
 
-#[derive(Debug, Clone)]
+// https://docs.rs/serde_with/1.9.4/serde_with/macro.serde_conv.html
+serde_with::serde_conv!(
+    SrgbAsArray,
+    Srgb,
+    |srgb: &Srgb| [srgb.red, srgb.green, srgb.blue],
+    |value: [f32; 3]| -> Result<_, std::convert::Infallible> {
+        Ok(Srgb::new(value[0], value[1], value[2]))
+    }
+);
+
+serde_with::serde_conv!(
+    TexturePixelsAsPath,
+    Vec<u8>,
+    |_pixels: &Vec<u8>| "/tmp/texture.jpg",
+    |value: &str| -> Result<_, std::convert::Infallible> { Ok(load_texture_image(value).0) }
+);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Material {
     Lambertian(Lambertian),
     Metal(Metal),
@@ -33,7 +52,7 @@ impl Scatterable for Material {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct Light {}
 
 impl Light {
@@ -48,8 +67,10 @@ impl Scatterable for Light {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[serde_with::serde_as]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct Lambertian {
+    #[serde_as(as = "SrgbAsArray")]
     pub albedo: Srgb,
 }
 
@@ -72,8 +93,10 @@ impl Scatterable for Lambertian {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[serde_with::serde_as]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct Metal {
+    #[serde_as(as = "SrgbAsArray")]
     pub albedo: Srgb,
     pub fuzz: f64,
 }
@@ -104,7 +127,7 @@ impl Scatterable for Metal {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct Glass {
     pub index_of_refraction: f64,
 }
@@ -174,13 +197,24 @@ impl Scatterable for Glass {
     }
 }
 
-#[derive(Debug, Clone)]
+#[serde_with::serde_as]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Texture {
+    #[serde_as(as = "SrgbAsArray")]
     pub albedo: Srgb,
-    pixels: Vec<u8>,
+    #[serde_as(as = "TexturePixelsAsPath")]
+    pub pixels: Vec<u8>,
     width: u64,
     height: u64,
     h_offset: f64,
+}
+
+fn load_texture_image(path: &str) -> (Vec<u8>, u64, u64) {
+    let file = File::open(path).expect(path);
+    let mut decoder = Decoder::new(BufReader::new(file));
+    let pixels = decoder.decode().expect("failed to decode image");
+    let metadata = decoder.info().unwrap();
+    (pixels, metadata.width as u64, metadata.height as u64)
 }
 
 impl Texture {
@@ -238,4 +272,11 @@ fn test_texture() {
         "data/earth.jpg",
         0.0,
     ));
+}
+
+#[test]
+fn test_to_json() {
+    let m = Metal::new(Srgb::new(0.8, 0.8, 0.8), 2.0);
+    let serialized = serde_json::to_string(&m).unwrap();
+    assert_eq!(r#"{"albedo":[0.8,0.8,0.8],"fuzz":2.0}"#, serialized,);
 }

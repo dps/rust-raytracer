@@ -5,16 +5,19 @@ use palette::Srgb;
 use rand::Rng;
 use rayon::prelude::*;
 use std::env;
+use std::fs;
 use std::fs::File;
 use std::time::Instant;
 
 pub mod camera;
+pub mod config;
 pub mod materials;
 pub mod point3d;
 pub mod ray;
 pub mod sphere;
 
 use camera::Camera;
+use config::Config;
 use materials::Glass;
 use materials::Lambertian;
 use materials::Light;
@@ -56,7 +59,7 @@ fn hit_world<'material>(
     hit_record
 }
 
-fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
+fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: usize, sky: bool) -> Srgb {
     if depth <= 0 {
         return Srgb::new(0.0, 0.0, 0.0);
     }
@@ -67,7 +70,7 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
             match scattered {
                 Some((scattered_ray, albedo)) => match scattered_ray {
                     Some(sr) => {
-                        let target_color = ray_color(&sr, world, depth - 1);
+                        let target_color = ray_color(&sr, world, depth - 1, sky);
                         return Srgb::new(
                             albedo.red * target_color.red,
                             albedo.green * target_color.green,
@@ -83,12 +86,15 @@ fn ray_color(ray: &Ray, world: &Vec<Sphere>, depth: i32) -> Srgb {
         }
         None => {
             let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
-            return Srgb::new(
-                (1.0 - t) * 1.0 + t * 0.5,
-                (1.0 - t) * 1.0 + t * 0.7,
-                (1.0 - t) * 1.0 + t * 1.0,
-            );
-            //return Srgb::new(0.0, 0.0, 0.0);
+            if sky {
+                return Srgb::new(
+                    (1.0 - t) * 1.0 + t * 0.5,
+                    (1.0 - t) * 1.0 + t * 0.7,
+                    (1.0 - t) * 1.0 + t * 1.0,
+                );
+            } else {
+                return Srgb::new(0.0, 0.0, 0.0);
+            }
         }
     }
 }
@@ -99,45 +105,7 @@ fn test_ray_color() {
     let q = Point3D::new(1.0, 0.0, 0.0);
     let r = Ray::new(p, q);
     let w = Vec::new();
-    assert_eq!(ray_color(&r, &w, 2), Srgb::new(0.75, 0.85, 1.0));
-}
-
-fn make_test_world(rot: f64) -> Vec<Sphere> {
-    let earth = Material::Texture(Texture::new(
-        Srgb::new(1.0, 1.0, 1.0),
-        "data/earth.jpg",
-        rot,
-    ));
-
-    let moon = Material::Texture(Texture::new(Srgb::new(1.0, 1.0, 1.0), "data/moon.jpg", rot));
-    let light = Material::Light(Light::new());
-
-    let mut world = Vec::new();
-    world.push(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5, earth));
-    world.push(Sphere::new(Point3D::new(-1.0, 0.2, -1.0), 0.1, moon));
-
-    world.push(Sphere::new(
-        Point3D::new(0.0, -100.5, -1.0),
-        100.0,
-        Material::Metal(Metal::new(Srgb::new(0.8, 0.8, 0.8), 0.0)),
-    ));
-    world.push(Sphere::new(Point3D::new(0.0, 16.0, 20.0), 15.0, light));
-    world.push(Sphere::new(
-        Point3D::new(1.0, 0.5, -1.0),
-        0.5,
-        Material::Metal(Metal::new(Srgb::new(0.8, 0.6, 0.2), 0.1)),
-    ));
-    world.push(Sphere::new(
-        Point3D::new(-1.2, 0.0, -1.0),
-        0.5,
-        Material::Glass(Glass::new(1.5)),
-    ));
-    world.push(Sphere::new(
-        Point3D::new(-1.2, 0.0, -1.0),
-        -0.45,
-        Material::Glass(Glass::new(1.5)),
-    ));
-    world
+    assert_eq!(ray_color(&r, &w, 2, true), Srgb::new(0.75, 0.85, 1.0));
 }
 
 fn _make_cover_world() -> Vec<Sphere> {
@@ -225,6 +193,8 @@ fn render_line(
     world: &Vec<Sphere>,
     camera: &Camera,
     samples_per_pixel: u32,
+    max_depth: usize,
+    sky: bool,
     y: usize,
 ) {
     let mut rng = rand::thread_rng();
@@ -235,7 +205,7 @@ fn render_line(
             let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
             let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
             let r = camera.get_ray(u, v);
-            let c = ray_color(&r, &world, 50);
+            let c = ray_color(&r, &world, max_depth, sky);
             pixel_colors[0] += c.red;
             pixel_colors[1] += c.green;
             pixel_colors[2] += c.blue;
@@ -253,41 +223,18 @@ fn render_line(
     }
 }
 
-fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
-    let image_width = 800;
-    let image_height = 600;
+fn render(filename: &str, scene: Config) {
+    let image_width = scene.width;
+    let image_height = scene.height;
 
     let mut pixels = vec![0; image_width * image_height * 3];
     let bounds = (image_width, image_height);
     let bands: Vec<(usize, &mut [u8])> = pixels.chunks_mut(bounds.0 * 3).enumerate().collect();
 
-    let camera = Camera::new(
-        Point3D::new(
-            -2.0 - 0.5 * (rot * 2.0 * std::f64::consts::PI).cos(),
-            1.0 + 0.5 * (rot * 2.0 * std::f64::consts::PI).sin(),
-            1.0,
-        ),
-        Point3D::new(0.0, 0.0, -1.0),
-        Point3D::new(0.0, 1.0, 0.0),
-        50.0,
-        (800.0 / 600.0) as f64,
-    );
-
-    // Camera for cover.
-    // let camera = Camera::new(
-    //     Point3D::new(13.0, 2.0, 3.0),
-    //     Point3D::new(0.0, 0.0, 0.0),
-    //     Point3D::new(0.0, 1.0, 0.0),
-    //     20.0,
-    //     (800.0 / 600.0) as f64,
-    // );
-
-    let world = make_test_world(rot);
-
     let start = Instant::now();
 
     bands.into_par_iter().for_each(|(i, band)| {
-        render_line(band, bounds, &world, &camera, samples_per_pixel, i);
+        render_line(band, bounds, &(scene.objects), &(scene.camera), scene.samples_per_pixel, scene.max_depth, scene.sky, i);
     });
     println!("Frame time: {}ms", start.elapsed().as_millis());
 
@@ -296,21 +243,18 @@ fn render(filename: &str, rot: f64, samples_per_pixel: u32) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        println!("Usage: {} <output_file>", args[0]);
+    if args.len() != 3 {
+        println!("Usage: {} <config_file> <output_file>", args[0]);
         return;
     }
 
-    let steps = 4;
-    let samples_per_pixel = 128;
+    let json = fs::read(&args[1]).expect("Unable to read config file.");
+    let scene = serde_json::from_slice::<Config>(&json).expect("Unable to parse config json");
 
-    for i in 0..steps {
-        let filename = format!("{}_{:0>3}.png", args[1], i);
-        println!("\nRendering {}", filename);
-        render(
-            &filename,
-            ((i as f64) / (steps as f64)) as f64,
-            samples_per_pixel,
-        );
-    }
+    let filename = &args[2]; //format!("{}_{:0>3}.png", args[2], i);
+    println!("\nRendering {}", filename);
+    render(
+        &filename,
+        scene
+    );
 }
