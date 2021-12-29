@@ -16,6 +16,9 @@ use crate::ray::Ray;
 use crate::sphere::Sphere;
 
 #[cfg(test)]
+use std::fs;
+
+#[cfg(test)]
 use crate::point3d::Point3D;
 
 #[cfg(test)]
@@ -98,7 +101,7 @@ fn ray_color(
                         for light in lights {
                             let light_ray =
                                 Ray::new(hit_record.point, light.center - hit_record.point);
-                            let target_color = ray_color(&light_ray, world, 1, sky, lights, 1);
+                            let target_color = ray_color(&light_ray, world, 1, sky, lights, 2);
                             // TODO actually merge in multiple lights
                             // Note it doesn't look appreciably different to just return the value here
                             // vs continue to scatter.
@@ -252,4 +255,22 @@ pub fn render(filename: &str, scene: Config) {
     println!("Frame time: {}ms", start.elapsed().as_millis());
 
     write_image(filename, &pixels, (image_width, image_height)).expect("error writing image");
+}
+
+#[test]
+fn test_render_full_test_scene() {
+    let json = fs::read("data/test_scene.json").expect("Unable to read file");
+    let mut scene = serde_json::from_slice::<Config>(&json).expect("Unable to parse json");
+    scene.width = 80;
+    scene.height = 60;
+    render("/tmp/test_scene.png", scene);
+}
+
+#[test]
+fn test_render_full_cover_scene() {
+    let json = fs::read("data/cover_scene.json").expect("Unable to read file");
+    let mut scene = serde_json::from_slice::<Config>(&json).expect("Unable to parse json");
+    scene.width = 40;
+    scene.height = 30;
+    render("/tmp/cover_scene.png", scene);
 }
