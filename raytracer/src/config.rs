@@ -1,16 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 use crate::camera::Camera;
-use crate::sphere::Sphere;
-use crate::materials::Material;
 use crate::materials::Lambertian;
+use crate::materials::Material;
 use crate::point3d::Point3D;
+use crate::sphere::Sphere;
 
 #[cfg(test)]
 use palette::Srgb;
 #[cfg(test)]
 use std::fs;
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {

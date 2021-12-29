@@ -234,7 +234,16 @@ fn render(filename: &str, scene: Config) {
     let start = Instant::now();
 
     bands.into_par_iter().for_each(|(i, band)| {
-        render_line(band, bounds, &(scene.objects), &(scene.camera), scene.samples_per_pixel, scene.max_depth, scene.sky, i);
+        render_line(
+            band,
+            bounds,
+            &(scene.objects),
+            &(scene.camera),
+            scene.samples_per_pixel,
+            scene.max_depth,
+            scene.sky,
+            i,
+        );
     });
     println!("Frame time: {}ms", start.elapsed().as_millis());
 
@@ -253,8 +262,5 @@ fn main() {
 
     let filename = &args[2]; //format!("{}_{:0>3}.png", args[2], i);
     println!("\nRendering {}", filename);
-    render(
-        &filename,
-        scene
-    );
+    render(&filename, scene);
 }
