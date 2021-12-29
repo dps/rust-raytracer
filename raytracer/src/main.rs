@@ -18,18 +18,14 @@ pub mod sphere;
 
 use camera::Camera;
 use config::Config;
-use materials::Glass;
-use materials::Lambertian;
-use materials::Light;
-use materials::Material;
-use materials::Metal;
 use materials::Scatterable;
-use materials::Texture;
-use point3d::Point3D;
 use ray::HitRecord;
 use ray::Hittable;
 use ray::Ray;
 use sphere::Sphere;
+
+#[cfg(test)]
+use point3d::Point3D;
 
 fn write_image(
     filename: &str,
@@ -106,85 +102,6 @@ fn test_ray_color() {
     let r = Ray::new(p, q);
     let w = Vec::new();
     assert_eq!(ray_color(&r, &w, 2, true), Srgb::new(0.75, 0.85, 1.0));
-}
-
-fn _make_cover_world() -> Vec<Sphere> {
-    let mut world = Vec::new();
-
-    world.push(Sphere::new(
-        Point3D::new(0.0, -1000.0, 0.0),
-        1000.0,
-        Material::Lambertian(Lambertian::new(Srgb::new(0.5, 0.5, 0.5))),
-    ));
-
-    let mut rng = rand::thread_rng();
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = rng.gen::<f64>();
-            let center = Point3D::new(
-                a as f64 + 0.9 * rng.gen::<f64>(),
-                0.2,
-                b as f64 + 0.9 * rng.gen::<f64>(),
-            );
-
-            if ((center - Point3D::new(4.0, 0.2, 0.0)).length()) < 0.9 {
-                continue;
-            }
-
-            if choose_mat < 0.8 {
-                // diffuse
-                world.push(Sphere::new(
-                    center,
-                    0.2,
-                    Material::Lambertian(Lambertian::new(Srgb::new(
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                    ))),
-                ));
-            } else if choose_mat < 0.95 {
-                // metal
-                world.push(Sphere::new(
-                    center,
-                    0.2,
-                    Material::Metal(Metal::new(
-                        Srgb::new(
-                            0.5 * (1.0 + rng.gen::<f32>()),
-                            0.5 * (1.0 + rng.gen::<f32>()),
-                            0.5 * (1.0 + rng.gen::<f32>()),
-                        ),
-                        0.5 * rng.gen::<f64>(),
-                    )),
-                ));
-            } else {
-                // glass
-                world.push(Sphere::new(center, 0.2, Material::Glass(Glass::new(1.5))));
-            }
-        }
-    }
-
-    world.push(Sphere::new(
-        Point3D::new(0.0, 1.0, 0.0),
-        1.0,
-        Material::Glass(Glass::new(1.5)),
-    ));
-    world.push(Sphere::new(
-        Point3D::new(-4.0, 1.0, 0.0),
-        1.0,
-        Material::Lambertian(Lambertian::new(Srgb::new(
-            0.4 as f32, 0.2 as f32, 0.1 as f32,
-        ))),
-    ));
-    world.push(Sphere::new(
-        Point3D::new(4.0, 1.0, 0.0),
-        1.0,
-        Material::Metal(Metal::new(
-            Srgb::new(0.7 as f32, 0.6 as f32, 0.5 as f32),
-            0.0,
-        )),
-    ));
-    world
 }
 
 fn render_line(

@@ -14,7 +14,17 @@ Additional features beyond Shirley's course:
 
 https://user-images.githubusercontent.com/237355/147687883-4e9ca4fc-7c3b-4adb-85d7-6b08d1bc69f7.mp4
 
+## Example usage
+```
+$ cargo build --release
+   Compiling raytracer v0.1.0 (/Users/dps/proj/rust-raytracer/raytracer)
+    Finished release [optimized] target(s) in 2.57s
 
+$ ./target/release/raytracer data/test_scene.json out.png
+
+Rendering out.png
+Frame time: 2840ms
+```
 
 ### Perf profiling
 ```
