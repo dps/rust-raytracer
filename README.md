@@ -11,6 +11,7 @@ Additional features beyond Shirley's course:
 
 ## Latest output
 ![Latest output](raytracer/output/cover.png)
+
 https://user-images.githubusercontent.com/237355/147687883-4e9ca4fc-7c3b-4adb-85d7-6b08d1bc69f7.mp4
 
 
