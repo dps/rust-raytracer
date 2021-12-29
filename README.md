@@ -7,6 +7,7 @@ Additional features beyond Shirley's course:
 * Texture mapping (e.g. earth and moon textures below)
 * Lighting
 * Parallel rendering - will use all CPU cores for best performance
+* Read scene data from JSON file
 
 ## Latest output
 ![Latest output](raytracer/output/cover.png)
