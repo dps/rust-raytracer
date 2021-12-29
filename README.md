@@ -24,6 +24,11 @@ $ ./target/release/raytracer data/test_scene.json out.png
 
 Rendering out.png
 Frame time: 2840ms
+
+$ ./target/release/raytracer data/cover_scene.json cover.png
+
+Rendering cover.png
+Frame time: 27146ms
 ```
 
 ### Perf profiling
