@@ -51,7 +51,7 @@ fn test_to_json() {
 
 #[test]
 fn test_from_file() {
-    let json = fs::read("data/scene.json").expect("Unable to read file");
+    let json = fs::read("data/test_scene.json").expect("Unable to read file");
     let scene = serde_json::from_slice::<Config>(&json).expect("Unable to parse json");
     assert_eq!(scene.width, 800);
     assert_eq!(scene.height, 600);
