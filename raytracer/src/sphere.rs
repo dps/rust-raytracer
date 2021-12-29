@@ -15,9 +15,9 @@ use palette::Srgb;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Sphere {
-    center: Point3D,
-    radius: f64,
-    material: Material,
+    pub center: Point3D,
+    pub radius: f64,
+    pub material: Material,
 }
 
 impl Sphere {
