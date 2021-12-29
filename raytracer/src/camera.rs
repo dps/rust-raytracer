@@ -36,7 +36,7 @@ pub struct CameraParams {
 }
 
 impl From<CameraParams> for Camera {
-    fn from(p : CameraParams) -> Self {
+    fn from(p: CameraParams) -> Self {
         Camera::new(p.look_from, p.look_at, p.vup, p.vfov, p.aspect)
     }
 }
