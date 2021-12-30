@@ -2,12 +2,13 @@
 
 An implementation of a very simple raytracer based on [Ray Tracing in One Weekend
  by Peter Shirley](https://raytracing.github.io/books/RayTracingInOneWeekend.html) in Rust. I used this project to *learn* Rust from scratch - the code may not be perfectly idiomatic, or even good, but it does make pretty pictures.
- 
+
 Additional features beyond Shirley's course:
 * Texture mapping (e.g. earth and moon textures below)
 * Lighting
 * Parallel rendering - will use all CPU cores for best performance
 * Read scene data from JSON file
+* Render a sky texture
 
 ## Example output
 ![Latest output](raytracer/output/cover.png)
