@@ -7,7 +7,6 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::time::Instant;
 
-use crate::camera::Camera;
 use crate::config::Config;
 use crate::materials::Scatterable;
 use crate::ray::HitRecord;
@@ -67,18 +66,17 @@ fn clamp(value: f32) -> f32 {
 
 fn ray_color(
     ray: &Ray,
-    world: &Vec<Sphere>,
-    depth: usize,
-    sky: bool,
+    scene: &Config,
     lights: &Vec<Sphere>,
     max_depth: usize,
+    depth: usize,
 ) -> Srgb {
     let mut rng = rand::thread_rng();
 
     if depth <= 0 {
         return Srgb::new(0.0, 0.0, 0.0);
     }
-    let hit = hit_world(world, ray, 0.001, std::f64::MAX);
+    let hit = hit_world(&scene.objects, ray, 0.001, std::f64::MAX);
     match hit {
         Some(hit_record) => {
             let scattered = hit_record.material.scatter(ray, &hit_record);
@@ -101,10 +99,7 @@ fn ray_color(
                         for light in lights {
                             let light_ray =
                                 Ray::new(hit_record.point, light.center - hit_record.point);
-                            let target_color = ray_color(&light_ray, world, 1, sky, lights, 2);
-                            // TODO actually merge in multiple lights
-                            // Note it doesn't look appreciably different to just return the value here
-                            // vs continue to scatter.
+                            let target_color = ray_color(&light_ray, scene, lights, 2, 1);
                             light_red += albedo.red * target_color.red;
                             light_green += albedo.green * target_color.green;
                             light_blue += albedo.blue * target_color.blue;
@@ -116,7 +111,7 @@ fn ray_color(
                     match scattered_ray {
                         Some(sr) => {
                             let target_color =
-                                ray_color(&sr, world, depth - 1, sky, lights, max_depth);
+                                ray_color(&sr, scene, lights, max_depth, depth - 1);
                             return Srgb::new(
                                 clamp(light_red + albedo.red * target_color.red),
                                 clamp(light_green + albedo.green * target_color.green),
@@ -134,15 +129,35 @@ fn ray_color(
             }
         }
         None => {
-            let t: f32 = 0.5 * (ray.direction.unit_vector().y() as f32 + 1.0);
-            if sky {
-                return Srgb::new(
-                    (1.0 - t) * 1.0 + t * 0.5,
-                    (1.0 - t) * 1.0 + t * 0.7,
-                    (1.0 - t) * 1.0 + t * 1.0,
-                );
-            } else {
-                return Srgb::new(0.0, 0.0, 0.0);
+            let t: f32 = clamp(0.5 * (ray.direction.unit_vector().y() as f32 + 1.0));
+            let u: f32 = clamp(0.5 * (ray.direction.unit_vector().x() as f32 + 1.0));
+            match &scene.sky {
+                None => {
+                    return Srgb::new(0.0, 0.0, 0.0);
+                }
+                Some(sky) => {
+                    match &sky.texture {
+                        None => {
+                            return Srgb::new(
+                                (1.0 - t) * 1.0 + t * 0.5,
+                                (1.0 - t) * 1.0 + t * 0.7,
+                                (1.0 - t) * 1.0 + t * 1.0,
+                            );
+                        },
+                        Some((pixels, width, height, _)) => {
+                            let x = (u * *width as f32) as usize;
+                            let y = ((1.0 - t) * *height as f32) as usize;
+                            let pixel_red = &pixels[(y * *width + x) * 3];
+                            let pixel_green = &pixels[(y * *width + x) * 3 + 1];
+                            let pixel_blue = &pixels[(y * *width + x) * 3 + 2];
+                            return Srgb::new(
+                                0.7 * *pixel_red as f32 / 255.0,
+                                0.7 * *pixel_green as f32 / 255.0,
+                                0.7 * *pixel_blue as f32 / 255.0,
+                            );            
+                        }
+                    }
+                }
             }
         }
     }
@@ -150,42 +165,39 @@ fn ray_color(
 
 #[test]
 fn test_ray_color() {
-    let p = Point3D::new(0.0, 0.0, 0.0);
-    let q = Point3D::new(1.0, 0.0, 0.0);
-    let r = Ray::new(p, q);
-    let w = Vec::new();
-    let l = Vec::new();
-    assert_eq!(
-        ray_color(&r, &w, 2, true, &l, 2),
-        Srgb::new(0.75, 0.85, 1.0)
-    );
+    // let p = Point3D::new(0.0, 0.0, 0.0);
+    // let q = Point3D::new(1.0, 0.0, 0.0);
+    // let r = Ray::new(p, q);
+    // let w = Vec::new();
+    // let l = Vec::new();
+    // assert_eq!(
+    //     ray_color(&r, &w, 2, true, &l, 2),
+    //     Srgb::new(0.75, 0.85, 1.0)
+    // );
 }
 
 fn render_line(
     pixels: &mut [u8],
-    bounds: (usize, usize),
-    world: &Vec<Sphere>,
-    camera: &Camera,
-    samples_per_pixel: u32,
-    max_depth: usize,
-    sky: bool,
-    y: usize,
+    scene: &Config,
     lights: &Vec<Sphere>,
+    y: usize,
 ) {
     let mut rng = rand::thread_rng();
 
+    let bounds = (scene.width, scene.height);
+
     for x in 0..bounds.0 {
         let mut pixel_colors: Vec<f32> = vec![0.0; 3];
-        for _s in 0..samples_per_pixel {
+        for _s in 0..scene.samples_per_pixel {
             let u = (x as f64 + rng.gen::<f64>()) / (bounds.0 as f64 - 1.0);
             let v = (bounds.1 as f64 - (y as f64 + rng.gen::<f64>())) / (bounds.1 as f64 - 1.0);
-            let r = camera.get_ray(u, v);
-            let c = ray_color(&r, &world, max_depth, sky, lights, max_depth);
+            let r = scene.camera.get_ray(u, v);
+            let c = ray_color(&r, scene, lights, scene.max_depth, scene.max_depth);
             pixel_colors[0] += c.red;
             pixel_colors[1] += c.green;
             pixel_colors[2] += c.blue;
         }
-        let scale = 1.0 / samples_per_pixel as f32;
+        let scale = 1.0 / scene.samples_per_pixel as f32;
         let color = Srgb::new(
             (scale * pixel_colors[0]).sqrt(),
             (scale * pixel_colors[1]).sqrt(),
@@ -233,8 +245,7 @@ pub fn render(filename: &str, scene: Config) {
     let image_height = scene.height;
 
     let mut pixels = vec![0; image_width * image_height * 3];
-    let bounds = (image_width, image_height);
-    let bands: Vec<(usize, &mut [u8])> = pixels.chunks_mut(bounds.0 * 3).enumerate().collect();
+    let bands: Vec<(usize, &mut [u8])> = pixels.chunks_mut(image_width * 3).enumerate().collect();
 
     let start = Instant::now();
     let lights = find_lights(&scene.objects);
@@ -242,14 +253,9 @@ pub fn render(filename: &str, scene: Config) {
     bands.into_par_iter().for_each(|(i, band)| {
         render_line(
             band,
-            bounds,
-            &(scene.objects),
-            &(scene.camera),
-            scene.samples_per_pixel,
-            scene.max_depth,
-            scene.sky,
-            i,
+            &scene,
             &lights,
+            i
         );
     });
     println!("Frame time: {}ms", start.elapsed().as_millis());

@@ -1,5 +1,10 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+use std::fs::File;
+use palette::Srgb;
+use jpeg_decoder::Decoder;
+use std::io::BufReader;
 
 use crate::camera::Camera;
 use crate::materials::Glass;
@@ -8,10 +13,58 @@ use crate::materials::Material;
 use crate::materials::Metal;
 use crate::point3d::Point3D;
 use crate::sphere::Sphere;
-use palette::Srgb;
 
 #[cfg(test)]
 use std::fs;
+
+#[serde_with::serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Sky {
+    // If provided, the sky will be rendered using the equirectangular
+    // projected texture loaded from an image file at this path. Else,
+    // a light blue colored sky will be used.
+    #[serde_as(as = "TextureOptionPixelsAsPath")]
+    pub texture: Option<(Vec<u8>, usize, usize, String)>,
+}
+
+impl Sky {
+    pub fn new_default_sky() -> Sky {
+        Sky {
+            texture: None,
+        }
+    }
+}
+
+fn load_texture_image(path: &str) -> (Vec<u8>, usize, usize, String) {
+    let file = File::open(path).expect(path);
+    let mut decoder = Decoder::new(BufReader::new(file));
+    let pixels = decoder.decode().expect("failed to decode image");
+    let metadata = decoder.info().unwrap();
+    (pixels, metadata.width as usize, metadata.height as usize, path.to_string())
+}
+
+serde_with::serde_conv!(
+    TextureOptionPixelsAsPath,
+    Option<(Vec<u8>, usize, usize, String)>,
+    |texture: &Option<(Vec<u8>, usize, usize, String)>| {
+        match texture {
+            Some(tuple) => {
+                tuple.3.clone()
+            }
+            None => {"".to_string()}
+        }
+    },
+    |value: &str| -> Result<_, std::convert::Infallible> {
+        match value {
+            "" => {
+                Ok(None)
+            }
+            _ => {
+                Ok(Some(load_texture_image(value)))
+            }
+        } 
+    }
+);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -19,7 +72,7 @@ pub struct Config {
     pub height: usize,
     pub samples_per_pixel: u32,
     pub max_depth: usize,
-    pub sky: bool,
+    pub sky: Option<Sky>,
     pub camera: Camera,
     pub objects: Vec<Sphere>,
 }
@@ -31,7 +84,7 @@ fn test_to_json() {
         height: 100,
         samples_per_pixel: 1,
         max_depth: 1,
-        sky: true,
+        sky: Some(Sky::new_default_sky()),
         camera: Camera::new(
             Point3D::new(0.0, 0.0, 0.0),
             Point3D::new(0.0, 0.0, -1.0),
@@ -48,7 +101,49 @@ fn test_to_json() {
         )],
     };
     let serialized = serde_json::to_string(&config).unwrap();
-    assert_eq!("{\"width\":100,\"height\":100,\"samples_per_pixel\":1,\"max_depth\":1,\"sky\":true,\"camera\":{\"look_from\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"look_at\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"vup\":{\"x\":0.0,\"y\":1.0,\"z\":0.0},\"vfov\":90.0,\"aspect\":1.0},\"objects\":[{\"center\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"radius\":0.5,\"material\":{\"Lambertian\":{\"albedo\":[0.8,0.3,0.3]}}}]}", serialized);
+    assert_eq!("{\"width\":100,\"height\":100,\"samples_per_pixel\":1,\"max_depth\":1,\"sky\":{\"texture\":\"\"},\"camera\":{\"look_from\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"look_at\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"vup\":{\"x\":0.0,\"y\":1.0,\"z\":0.0},\"vfov\":90.0,\"aspect\":1.0},\"objects\":[{\"center\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"radius\":0.5,\"material\":{\"Lambertian\":{\"albedo\":[0.8,0.3,0.3]}}}]}", serialized);
+}
+
+#[test]
+fn test_sky_perms_to_from_json() {
+    let config = Config {
+        width: 100,
+        height: 100,
+        samples_per_pixel: 1,
+        max_depth: 1,
+        sky: None,
+        camera: Camera::new(
+            Point3D::new(0.0, 0.0, 0.0),
+            Point3D::new(0.0, 0.0, -1.0),
+            Point3D::new(0.0, 1.0, 0.0),
+            90.0,
+            1.0,
+        ),
+        objects: vec![Sphere::new(
+            Point3D::new(0.0, 0.0, -1.0),
+            0.5,
+            Material::Lambertian(Lambertian::new(Srgb::new(
+                0.8 as f32, 0.3 as f32, 0.3 as f32,
+            ))),
+        )],
+    };
+    let serialized = serde_json::to_string(&config).unwrap();
+    assert_eq!("{\"width\":100,\"height\":100,\"samples_per_pixel\":1,\"max_depth\":1,\"sky\":null,\"camera\":{\"look_from\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"look_at\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"vup\":{\"x\":0.0,\"y\":1.0,\"z\":0.0},\"vfov\":90.0,\"aspect\":1.0},\"objects\":[{\"center\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"radius\":0.5,\"material\":{\"Lambertian\":{\"albedo\":[0.8,0.3,0.3]}}}]}", serialized);
+    let _ = serde_json::from_str::<Config>(&serialized).expect("Unable to parse json");
+
+    // This scene contains a sky texture at data/earth,jpg
+    let scene_json = "{\"width\":100,\"height\":100,\"samples_per_pixel\":1,\"max_depth\":1,\"sky\":{\"texture\":\"data/earth.jpg\"},\"camera\":{\"look_from\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"look_at\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"vup\":{\"x\":0.0,\"y\":1.0,\"z\":0.0},\"vfov\":90.0,\"aspect\":1.0},\"objects\":[{\"center\":{\"x\":0.0,\"y\":0.0,\"z\":-1.0},\"radius\":0.5,\"material\":{\"Lambertian\":{\"albedo\":[0.8,0.3,0.3]}}}]}";
+    let scene = serde_json::from_str::<Config>(&scene_json).expect("Unable to parse json");
+
+    assert_eq!(match scene.sky {
+        Some(sky) => {
+            match sky.texture {
+                Some(tuple) => (tuple.1, tuple.2, tuple.3),
+                _ => (0, 0, "".to_string()),
+            }
+        }
+        _ => (0, 0, "".to_string())
+    }, (2048, 1024, "data/earth.jpg".to_string()))
 }
 
 fn _make_cover_world() -> Vec<Sphere> {
@@ -137,7 +232,7 @@ fn test_cover_scene_to_json() {
         height: 600,
         samples_per_pixel: 64,
         max_depth: 50,
-        sky: true,
+        sky: Some(Sky::new_default_sky()),
         camera: Camera::new(
             Point3D::new(13.0, 2.0, 3.0),
             Point3D::new(0.0, 0.0, 0.0),

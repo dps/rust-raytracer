@@ -209,7 +209,7 @@ pub struct Texture {
     h_offset: f64,
 }
 
-fn load_texture_image(path: &str) -> (Vec<u8>, u64, u64) {
+pub fn load_texture_image(path: &str) -> (Vec<u8>, u64, u64) {
     let file = File::open(path).expect(path);
     let mut decoder = Decoder::new(BufReader::new(file));
     let pixels = decoder.decode().expect("failed to decode image");
