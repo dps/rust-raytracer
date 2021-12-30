@@ -239,9 +239,9 @@ pub fn render(filename: &str, scene: Config) {
     let mut pixels = vec![0; image_width * image_height * 3];
     let bands: Vec<(usize, &mut [u8])> = pixels.chunks_mut(image_width * 3).enumerate().collect();
 
-    let start = Instant::now();
     let lights = find_lights(&scene.objects);
 
+    let start = Instant::now();
     bands.into_par_iter().for_each(|(i, band)| {
         render_line(band, &scene, &lights, i);
     });
