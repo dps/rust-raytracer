@@ -3,7 +3,9 @@
   "height": 600,
   "samples_per_pixel": 64,
   "max_depth": 50,
-  "sky": true,
+  "sky": {
+    "texture": ""
+  },
   "camera": {
     "look_from": {
       "x": 13.0,

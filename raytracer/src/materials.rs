@@ -24,6 +24,7 @@ serde_with::serde_conv!(
     }
 );
 
+// TODO: replace this with the more elegant implementation in config.rs
 serde_with::serde_conv!(
     TexturePixelsAsPath,
     Vec<u8>,

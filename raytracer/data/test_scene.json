@@ -3,7 +3,9 @@
   "height": 600,
   "samples_per_pixel": 128,
   "max_depth": 50,
-  "sky": true,
+  "sky": {
+    "texture":"data/beach.jpg"
+  },
   "camera": {
     "look_from": {
       "x": -2.0,
