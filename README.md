@@ -32,59 +32,38 @@ Rendering cover.png
 Frame time: 27146ms
 ```
 
-### Perf profiling
+### Texture mapping
+![cover_alt](https://user-images.githubusercontent.com/237355/147840674-38dd846f-1d4d-40a8-a573-e626a454f55a.png)
+
+### Lighting
+![lighting-recast-final](https://user-images.githubusercontent.com/237355/147840677-8e895fe5-1d25-428e-a847-6120af3ecfec.png)
+
+### Parallel rendering - will use all CPU cores for best performance
+
+#### Original
 ```
 🚀 ./target/release/raytracer anim/frame
    Compiling raytracer v0.1.0 (/Users/dps/proj/rust-raytracer/raytracer)
     Finished release [optimized] target(s) in 2.21s
 
 Rendering anim/frame_000.png
-............................................................Frame time: 21s
-
-Rendering anim/frame_001.png
-............................................................Frame time: 21s
-
-Rendering anim/frame_002.png
-............................................................Frame time: 20s
+............................................................
+Frame time: 21s
 ```
-Using `crossbeam` to distribute across 8 threads
-```
-Rendering anim/frame_000.png
-Frame time: 5s
-
-Rendering anim/frame_001.png
-Frame time: 5s
-
-Rendering anim/frame_002.png
-Frame time: 5s
-```
-Uneven chunk timing
-```
-Rendering anim/frame_003.png
-Chunk time: 573ms
-Chunk time: 776ms
-Chunk time: 1728ms
-Chunk time: 4180ms
-Chunk time: 5215ms
-Chunk time: 5428ms
-Chunk time: 5632ms
-Chunk time: 5705ms
-Frame time: 5735ms
-```
-Using rayon
+#### Using rayon
 ```
 Rendering anim/frame_000.png
 Frame time: 2573ms
-
-Rendering anim/frame_001.png
-Frame time: 2775ms
-
-Rendering anim/frame_002.png
-Frame time: 3049ms
-
-Rendering anim/frame_003.png
-Frame time: 3299ms
 ```
+
+
+### Read scene data from JSON file
+
+### Render a sky texture
+![sky_textures](https://user-images.githubusercontent.com/237355/147840693-355a75da-a473-4c44-b712-842129450306.gif)
+
+
+
 
 ### Make animation
 ```
