@@ -8,6 +8,7 @@ use std::fs::File;
 use std::time::Instant;
 
 use crate::config::Config;
+use crate::materials::Material;
 use crate::materials::Scatterable;
 use crate::ray::HitRecord;
 use crate::ray::Hittable;
@@ -21,10 +22,13 @@ use std::fs;
 use crate::point3d::Point3D;
 
 #[cfg(test)]
+use crate::camera::Camera;
+#[cfg(test)]
+use crate::config::Sky;
+#[cfg(test)]
 use crate::materials::Lambertian;
 #[cfg(test)]
 use crate::materials::Light;
-use crate::materials::Material;
 
 fn write_image(
     filename: &str,
@@ -162,15 +166,26 @@ fn ray_color(
 
 #[test]
 fn test_ray_color() {
-    // let p = Point3D::new(0.0, 0.0, 0.0);
-    // let q = Point3D::new(1.0, 0.0, 0.0);
-    // let r = Ray::new(p, q);
-    // let w = Vec::new();
-    // let l = Vec::new();
-    // assert_eq!(
-    //     ray_color(&r, &w, 2, true, &l, 2),
-    //     Srgb::new(0.75, 0.85, 1.0)
-    // );
+    let p = Point3D::new(0.0, 0.0, 0.0);
+    let q = Point3D::new(1.0, 0.0, 0.0);
+    let r = Ray::new(p, q);
+    let scene = Config {
+        width: 80,
+        height: 60,
+        samples_per_pixel: 1,
+        max_depth: 2,
+        sky: Some(Sky::new_default_sky()),
+        camera: Camera::new(
+            Point3D::new(0.0, 0.0, -3.0),
+            Point3D::new(0.0, 0.0, 0.0),
+            Point3D::new(0.0, 1.0, 0.0),
+            20.0,
+            1.333,
+        ),
+        objects: Vec::new(),
+    };
+    let l = Vec::new();
+    assert_eq!(ray_color(&r, &scene, &l, 2, 2), Srgb::new(0.75, 0.85, 1.0));
 }
 
 fn render_line(pixels: &mut [u8], scene: &Config, lights: &Vec<Sphere>, y: usize) {

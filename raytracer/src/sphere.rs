@@ -7,6 +7,8 @@ use crate::ray::Hittable;
 use crate::ray::Ray;
 
 #[cfg(test)]
+use crate::materials::Glass;
+#[cfg(test)]
 use crate::materials::Lambertian;
 #[cfg(test)]
 use crate::materials::Texture;
@@ -79,13 +81,7 @@ impl Hittable for Sphere {
 #[test]
 fn test_sphere_hit() {
     let center = Point3D::new(0.0, 0.0, 0.0);
-    let sphere = Sphere::new(
-        center,
-        1.0,
-        Material::Lambertian(Lambertian::new(Srgb::new(
-            0.5 as f32, 0.5 as f32, 0.5 as f32,
-        ))),
-    );
+    let sphere = Sphere::new(center, 1.0, Material::Glass(Glass::new(1.5)));
     let ray = Ray::new(Point3D::new(0.0, 0.0, -5.0), Point3D::new(0.0, 0.0, 1.0));
     let hit = sphere.hit(&ray, 0.0, f64::INFINITY);
     assert_eq!(hit.unwrap().t, 4.0);
