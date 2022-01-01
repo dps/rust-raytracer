@@ -55,15 +55,49 @@ Frame time: 21s
 Rendering anim/frame_000.png
 Frame time: 2573ms
 ```
-
-
-### Read scene data from JSON file
-
 ### Render a sky texture
 ![sky_textures](https://user-images.githubusercontent.com/237355/147840693-355a75da-a473-4c44-b712-842129450306.gif)
 
+### Read scene data from JSON file
 
-
+#### Example
+```
+{
+  "width": 800,
+  "height": 600,
+  "samples_per_pixel": 128,
+  "max_depth": 50,
+  "sky": {
+    "texture":"data/beach.jpg"
+  },
+  "camera": {
+    "look_from": { "x": -2.0, "y": 0.5, "z": 1.0 },
+    "look_at": { "x": 0.0, "y": 0.0, "z": -1.0 },
+    "vup": { "x": 0.0, "y": 1.0, "z": 0.0 },
+    "vfov": 50.0,
+    "aspect": 1.3333333333333333
+  },
+  "objects": [
+    {
+      "center": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "radius": 0.5,
+      "material": {
+        "Texture": {
+          "albedo": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "pixels": "data/earth.jpg",
+          "width": 2048,
+          "height": 1024,
+          "h_offset": 0.75
+        }
+      }
+    }
+  ]
+}
+```
 
 ### Make animation
 ```
