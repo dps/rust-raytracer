@@ -110,3 +110,6 @@ Earth and moon textures from https://www.solarsystemscope.com/textures/
 ### Extreme lighting example
 ![147705264-c6f439df-f61b-4bcf-b5e6-c2c755b35b1c](https://user-images.githubusercontent.com/237355/147706272-7e35f213-914f-43dd-9b8b-4d3e7628cc19.png)
 
+### Progressive max_depth animation
+![max_depth_anim](https://user-images.githubusercontent.com/237355/148159509-aa492f3b-2805-45fe-94a6-3588fbf69bb2.gif)
+
